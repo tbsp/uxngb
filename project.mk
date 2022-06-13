@@ -10,10 +10,10 @@ PADVALUE := 0xFF
 VERSION := 0
 
 # 4-ASCII letter game ID
-GAMEID := GBSK
+GAMEID := tbsp
 
 # Game title, up to 11 ASCII chars
-TITLE := STARTERKIT
+TITLE := uxngb
 
 # New licensee, 2 ASCII chars
 # Homebrew games FTW!
@@ -34,7 +34,7 @@ MBC := 0x00
 SRAMSIZE := 0x00
 
 # ROM name
-ROMNAME := starterkit
+ROMNAME := uxngb
 ROMEXT  := gb
 
 
