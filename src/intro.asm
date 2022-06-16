@@ -156,270 +156,39 @@ device_handlers::
 
 SECTION "Instruction Jump Table", ROM0
 instr_jump_table:
+    ;   0x00     0x01     0x02     0x03     0x04     0x05     0x06     0x07     0x08     0x09     0x0A     0x0B     0x0C     0x0D     0x0E     0x0F
     ; 0x00
-    dw instr_BRK
-    dw instr_INC
-    dw instr_POP
-    dw instr_NIP
-    dw instr_SWP
-    dw instr_ROT
-    dw instr_DUP
-    dw instr_OVR
-    dw instr_EQU
-    dw instr_NEQ
-    dw instr_GTH
-    dw instr_LTH
-    dw instr_JMP
-    dw instr_JCN
-    dw instr_JSR
-    dw instr_STH
-    dw instr_LDZ
-    dw instr_STZ
-    dw instr_LDR
-    dw instr_STR
-    dw instr_LDA
-    dw instr_STA
-    dw instr_DEI
-    dw instr_DEO
-    dw instr_ADD
-    dw instr_SUB
-    dw instr_MUL
-    dw instr_DIV
-    dw instr_AND
-    dw instr_ORA
-    dw instr_EOR
-    dw instr_SFT
+    dw _BRK,    _INC,    _POP,    _NIP,    _SWP,    _ROT,    _DUP,    _OVR,    _EQU,    _NEQ,    _GTH,    _LTH,    _JMP,    _JCN,    _JSR,    _STH
+    ; 0x10
+    dw _LDZ,    _STZ,    _LDR,    _STR,    _LDA,    _STA,    _DEI,    _DEO,    _ADD,    _SUB,    _MUL,    _DIV,    _AND,    _ORA,    _EOR,    _SFT
     ; 0x20
-    dw instr_NIL
-    dw instr_INC2
-    dw instr_POP2
-    dw instr_NIP2
-    dw instr_SWP2
-    dw instr_ROT2
-    dw instr_DUP2
-    dw instr_OVR2
-    dw instr_EQU2
-    dw instr_NEQ2
-    dw instr_GTH2
-    dw instr_LTH2
-    dw instr_JMP2
-    dw instr_JCN2
-    dw instr_JSR2
-    dw instr_STH2
-    dw instr_LDZ2
-    dw instr_STZ2
-    dw instr_LDR2
-    dw instr_STR2
-    dw instr_LDA2
-    dw instr_STA2
-    dw instr_DEI2
-    dw instr_DEO2
-    dw instr_ADD2
-    dw instr_SUB2
-    dw instr_MUL2
-    dw instr_DIV2
-    dw instr_AND2
-    dw instr_ORA2
-    dw instr_EOR2
-    dw instr_SFT2
+    dw _NIL,    _INC2,   _POP2,   _NIP2,   _SWP2,   _ROT2,   _DUP2,   _OVR2,   _EQU2,   _NEQ2,   _GTH2,   _LTH2,   _JMP2,   _JCN2,   _JSR2,   _STH2
+    ; 0x30
+    dw _LDZ2,   _STZ2,   _LDR2,   _STR2,   _LDA2,   _STA2,   _DEI2,   _DEO2,   _ADD2,   _SUB2,   _MUL2,   _DIV2,   _AND2,   _ORA2,   _EOR2,   _SFT2
     ; 0x40
-    dw instr_NIL
-    dw instr_INCr
-    dw instr_POPr
-    dw instr_NIPr
-    dw instr_SWPr
-    dw instr_ROTr
-    dw instr_DUPr
-    dw instr_OVRr
-    dw instr_EQUr
-    dw instr_NEQr
-    dw instr_GTHr
-    dw instr_LTHr
-    dw instr_JMPr
-    dw instr_JCNr
-    dw instr_JSRr
-    dw instr_STHr
-    dw instr_LDZr
-    dw instr_STZr
-    dw instr_LDRr
-    dw instr_STRr
-    dw instr_LDAr
-    dw instr_STAr
-    dw instr_DEIr
-    dw instr_DEOr
-    dw instr_ADDr
-    dw instr_SUBr
-    dw instr_MULr
-    dw instr_DIVr
-    dw instr_ANDr
-    dw instr_ORAr
-    dw instr_EORr
-    dw instr_SFTr
+    dw _NIL,    _INCr,   _POPr,   _NIPr,   _SWPr,   _ROTr,   _DUPr,   _OVRr,   _EQUr,   _NEQr,   _GTHr,   _LTHr,   _JMPr,   _JCNr,   _JSRr,   _STHr
+    ; 0x50
+    dw _LDZr,   _STZr,   _LDRr,   _STRr,   _LDAr,   _STAr,   _DEIr,   _DEOr,   _ADDr,   _SUBr,   _MULr,   _DIVr,   _ANDr,   _ORAr,   _EORr,   _SFTr
     ; 0x60
-    dw instr_NIL
-    dw instr_INC2r
-    dw instr_POP2r
-    dw instr_NIP2r
-    dw instr_SWP2r
-    dw instr_ROT2r
-    dw instr_DUP2r
-    dw instr_OVR2r
-    dw instr_EQU2r
-    dw instr_NEQ2r
-    dw instr_GTH2r
-    dw instr_LTH2r
-    dw instr_JMP2r
-    dw instr_JCN2r
-    dw instr_JSR2r
-    dw instr_STH2r
-    dw instr_LDZ2r
-    dw instr_STZ2r
-    dw instr_LDR2r
-    dw instr_STR2r
-    dw instr_LDA2r
-    dw instr_STA2r
-    dw instr_DEI2r
-    dw instr_DEO2r
-    dw instr_ADD2r
-    dw instr_SUB2r
-    dw instr_MUL2r
-    dw instr_DIV2r
-    dw instr_AND2r
-    dw instr_ORA2r
-    dw instr_EOR2r
-    dw instr_SFT2r
+    dw _NIL,    _INC2r,  _POP2r,  _NIP2r,  _SWP2r,  _ROT2r,  _DUP2r,  _OVR2r,  _EQU2r,  _NEQ2r,  _GTH2r,  _LTH2r,  _JMP2r,  _JCN2r,  _JSR2r,  _STH2r
+    ; 0x70
+    dw _LDZ2r,  _STZ2r,  _LDR2r,  _STR2r,  _LDA2r,  _STA2r,  _DEI2r,  _DEO2r,  _ADD2r,  _SUB2r,  _MUL2r,  _DIV2r,  _AND2r,  _ORA2r,  _EOR2r,  _SFT2r
     ; 0x80
-    dw instr_LIT
-    dw instr_INCk
-    dw instr_POPk
-    dw instr_NIPk
-    dw instr_SWPk
-    dw instr_ROTk
-    dw instr_DUPk
-    dw instr_OVRk
-    dw instr_EQUk
-    dw instr_NEQk
-    dw instr_GTHk
-    dw instr_LTHk
-    dw instr_JMPk
-    dw instr_JCNk
-    dw instr_JSRk
-    dw instr_STHk
-    dw instr_LDZk
-    dw instr_STZk
-    dw instr_LDRk
-    dw instr_STRk
-    dw instr_LDAk
-    dw instr_STAk
-    dw instr_DEIk
-    dw instr_DEOk
-    dw instr_ADDk
-    dw instr_SUBk
-    dw instr_MULk
-    dw instr_DIVk
-    dw instr_ANDk
-    dw instr_ORAk
-    dw instr_EORk
-    dw instr_SFTk
+    dw _LIT,    _INCk,   _POPk,   _NIPk,   _SWPk,   _ROTk,   _DUPk,   _OVRk,   _EQUk,   _NEQk,   _GTHk,   _LTHk,   _JMPk,   _JCNk,   _JSRk,   _STHk
+    ; 0x90
+    dw _LDZk,   _STZk,   _LDRk,   _STRk,   _LDAk,   _STAk,   _DEIk,   _DEOk,   _ADDk,   _SUBk,   _MULk,   _DIVk,   _ANDk,   _ORAk,   _EORk,   _SFTk
     ; 0xA0
-    dw instr_LIT2
-    dw instr_INC2k
-    dw instr_POP2k
-    dw instr_NIP2k
-    dw instr_SWP2k
-    dw instr_ROT2k
-    dw instr_DUP2k
-    dw instr_OVR2k
-    dw instr_EQU2k
-    dw instr_NEQ2k
-    dw instr_GTH2k
-    dw instr_LTH2k
-    dw instr_JMP2k
-    dw instr_JCN2k
-    dw instr_JSR2k
-    dw instr_STH2k
-    dw instr_LDZ2k
-    dw instr_STZ2k
-    dw instr_LDR2k
-    dw instr_STR2k
-    dw instr_LDA2k
-    dw instr_STA2k
-    dw instr_DEI2k
-    dw instr_DEO2k
-    dw instr_ADD2k
-    dw instr_SUB2k
-    dw instr_MUL2k
-    dw instr_DIV2k
-    dw instr_AND2k
-    dw instr_ORA2k
-    dw instr_EOR2k
-    dw instr_SFT2k
+    dw _LIT2,   _INC2k,  _POP2k,  _NIP2k,  _SWP2k,  _ROT2k,  _DUP2k,  _OVR2k,  _EQU2k,  _NEQ2k,  _GTH2k,  _LTH2k,  _JMP2k,  _JCN2k,  _JSR2k,  _STH2k
+    ; 0xB0
+    dw _LDZ2k,  _STZ2k,  _LDR2k,  _STR2k,  _LDA2k,  _STA2k,  _DEI2k,  _DEO2k,  _ADD2k,  _SUB2k,  _MUL2k,  _DIV2k,  _AND2k,  _ORA2k,  _EOR2k,  _SFT2k
     ; 0xC0
-    dw instr_LITr
-    dw instr_INCkr
-    dw instr_POPkr
-    dw instr_NIPkr
-    dw instr_SWPkr
-    dw instr_ROTkr
-    dw instr_DUPkr
-    dw instr_OVRkr
-    dw instr_EQUkr
-    dw instr_NEQkr
-    dw instr_GTHkr
-    dw instr_LTHkr
-    dw instr_JMPkr
-    dw instr_JCNkr
-    dw instr_JSRkr
-    dw instr_STHkr
-    dw instr_LDZkr
-    dw instr_STZkr
-    dw instr_LDRkr
-    dw instr_STRkr
-    dw instr_LDAkr
-    dw instr_STAkr
-    dw instr_DEIkr
-    dw instr_DEOkr
-    dw instr_ADDkr
-    dw instr_SUBkr
-    dw instr_MULkr
-    dw instr_DIVkr
-    dw instr_ANDkr
-    dw instr_ORAkr
-    dw instr_EORkr
-    dw instr_SFTkr
+    dw _LITr,   _INCkr,  _POPkr,  _NIPkr,  _SWPkr,  _ROTkr,  _DUPkr,  _OVRkr,  _EQUkr,  _NEQkr,  _GTHkr,  _LTHkr,  _JMPkr,  _JCNkr,  _JSRkr,  _STHkr
+    ; 0xD0
+    dw _LDZkr,  _STZkr,  _LDRkr,  _STRkr,  _LDAkr,  _STAkr,  _DEIkr,  _DEOkr,  _ADDkr,  _SUBkr,  _MULkr,  _DIVkr,  _ANDkr,  _ORAkr,  _EORkr,  _SFTkr
     ; 0xE0
-    dw instr_LIT2r
-    dw instr_INC2kr
-    dw instr_POP2kr
-    dw instr_NIP2kr
-    dw instr_SWP2kr
-    dw instr_ROT2kr
-    dw instr_DUP2kr
-    dw instr_OVR2kr
-    dw instr_EQU2kr
-    dw instr_NEQ2kr
-    dw instr_GTH2kr
-    dw instr_LTH2kr
-    dw instr_JMP2kr
-    dw instr_JCN2kr
-    dw instr_JSR2kr
-    dw instr_STH2kr
-    dw instr_LDZ2kr
-    dw instr_STZ2kr
-    dw instr_LDR2kr
-    dw instr_STR2kr
-    dw instr_LDA2kr
-    dw instr_STA2kr
-    dw instr_DEI2kr
-    dw instr_DEO2kr
-    dw instr_ADD2kr
-    dw instr_SUB2kr
-    dw instr_MUL2kr
-    dw instr_DIV2kr
-    dw instr_AND2kr
-    dw instr_ORA2kr
-    dw instr_EOR2kr
-    dw instr_SFT2kr
+    dw _LIT2r,  _INC2kr, _POP2kr, _NIP2kr, _SWP2kr, _ROT2kr, _DUP2kr, _OVR2kr, _EQU2kr, _NEQ2kr, _GTH2kr, _LTH2kr, _JMP2kr, _JCN2kr, _JSR2kr, _STH2kr
+    ; 0xF0
+    dw _LDZ2kr, _STZ2kr, _LDR2kr, _STR2kr, _LDA2kr, _STA2kr, _DEI2kr, _DEO2kr, _ADD2kr, _SUB2kr, _MUL2kr, _DIV2kr, _AND2kr, _ORA2kr, _EOR2kr, _SFT2kr
 
 SECTION "UXN ROM", ROMX, ALIGN[$0100]
 staticROM:

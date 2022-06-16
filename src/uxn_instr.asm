@@ -89,12 +89,12 @@ BC_to_UXN_Banked: MACRO
     ENDM
 
 
-instr_NIL::
-instr_BRK::
+_NIL::
+_BRK::
     ret
 
 ; INC a -- b
-instr_INC::
+_INC::
     ld      h, HIGH(w_st)
     ldh     a, [wst_ptr]
 .continue
@@ -104,14 +104,14 @@ instr_INC::
     ret
 
 ; POP a -- 
-instr_POP::
+_POP::
     ldh     a, [wst_ptr]
     dec     a
     ldh     [wst_ptr], a
     ret
 
 ; NIP a b -- b
-instr_NIP::
+_NIP::
     ld      h, HIGH(w_st)
     ldh     a, [wst_ptr]
     dec     a
@@ -123,7 +123,7 @@ instr_NIP::
     ret
 
 ; SWP a b -- b a
-instr_SWP::
+_SWP::
     ld      h, HIGH(w_st)
     ldh     a, [wst_ptr]
 .continue
@@ -136,7 +136,7 @@ instr_SWP::
     ret
     
 ; ROT a b c -- b c a
-instr_ROT::
+_ROT::
     ld      h, HIGH(w_st)
     ldh     a, [wst_ptr]
 .continue
@@ -153,7 +153,7 @@ instr_ROT::
     ret
 
 ; DUP a -- a a
-instr_DUP::
+_DUP::
     WST_HL_dec
     ld      a, [hli]
     ld      [hli], a
@@ -161,7 +161,7 @@ instr_DUP::
     ret
 
 ; OVR a b -- a b a
-instr_OVR::
+_OVR::
     WST_HL_dec
     dec     l
     ld      a, [hli]
@@ -171,7 +171,7 @@ instr_OVR::
     ret
 
 ; EQU a b -- bool8
-instr_EQU::
+_EQU::
     WST_HL_dec
     ld      a, [hld]
     ld      b, [hl]
@@ -185,7 +185,7 @@ instr_EQU::
     ret
 
 ; NEQ a b -- bool8
-instr_NEQ::
+_NEQ::
     WST_HL_dec
     ld      a, [hld]
     ld      b, [hl]
@@ -199,7 +199,7 @@ instr_NEQ::
     ret
 
 ; GTH a b -- bool8
-instr_GTH::
+_GTH::
     WST_HL_dec
     ld      a, [hld]
     ld      b, [hl]
@@ -213,7 +213,7 @@ instr_GTH::
     ret
 
 ; LTH a b -- bool8
-instr_LTH::
+_LTH::
     WST_HL_dec
     ld      a, [hld]
     ld      b, [hl]
@@ -228,7 +228,7 @@ instr_LTH::
     ret
 
 ; JMP addr --
-instr_JMP::
+_JMP::
     ld      h, HIGH(w_st)
     ldh     a, [wst_ptr]
     dec     a
@@ -251,7 +251,7 @@ instr_JMP::
     ret
 
 ; JCN cond8 addr --
-instr_JCN::
+_JCN::
     ld      h, HIGH(w_st)
     ldh     a, [wst_ptr]
     dec     a
@@ -265,10 +265,10 @@ instr_JCN::
     ret     z   ; condition not met
     inc     l
     ld      c, [hl]
-    jr      instr_JMP.jump
+    jr      _JMP.jump
 
 ; JSR addr --
-instr_JSR::
+_JSR::
     ldh     a, [pc]
     ld      b, a
     ldh     a, [pc+1]
@@ -288,11 +288,11 @@ instr_JSR::
     inc     l
     RST_PTR_L
     ; UXN return address now on RST, continue with normal JMP
-    jr      instr_JMP
+    jr      _JMP
 
 ; STH a --
 ; TODO: Check if removing macros opens up optimizations
-instr_STH::
+_STH::
     WST_HL_dec
     ld      b, [hl]
     WST_PTR_L   ; destroys A
@@ -303,7 +303,7 @@ instr_STH::
     ret
 
 ; LDZ addr8 -- value
-instr_LDZ::
+_LDZ::
     WST_HL_dec
 .continue
     ld      b, HIGH(zero_page)
@@ -313,7 +313,7 @@ instr_LDZ::
     ret
 
 ; STZ value addr8 --
-instr_STZ::
+_STZ::
     WST_HL_dec
     ld      b, HIGH(zero_page)
     ld      c, [hl]
@@ -324,7 +324,7 @@ instr_STZ::
     ret
 
 ; LDR addr8 -- value
-instr_LDR::
+_LDR::
     WST_HL_dec
 .continue
     ld      c, [hl]
@@ -342,7 +342,7 @@ instr_LDR::
     ret
 
 ; STR value addr8 --
-instr_STR::
+_STR::
     WST_HL_dec
     ld      c, [hl]
     dec     l
@@ -362,7 +362,7 @@ instr_STR::
     ret
 
 ; LDA addr16 -- value
-instr_LDA::
+_LDA::
     WST_HA_dec_ptr
 .continue
     ld      l, a
@@ -375,7 +375,7 @@ instr_LDA::
     ret
 
 ; STA value addr16 --
-instr_STA::
+_STA::
     WST_HL_dec
     ld      c, [hl]
     dec     l
@@ -389,11 +389,11 @@ instr_STA::
     ld      [bc], a
     ret
 
-instr_DEI::
+_DEI::
     ret
 
 ; DEO val device8 --
-instr_DEO::
+_DEO::
     WST_HL_dec
     ld      d, [hl]
     dec     l
@@ -425,7 +425,7 @@ instr_DEO::
     ret
 
 ; ADD a b -- c
-instr_ADD::
+_ADD::
     WST_HL_dec
     ld      a, [hld]
     ld      b, [hl]
@@ -435,7 +435,7 @@ instr_ADD::
     ret
 
 ; SUB a b -- c
-instr_SUB::
+_SUB::
     WST_HL_dec
     dec     l
     ld      a, [hli]
@@ -446,7 +446,7 @@ instr_SUB::
     ret
 
 ; MUL a b -- c
-instr_MUL::
+_MUL::
     WST_HA_dec_ptr
 .continue
     ld      l, a
@@ -476,7 +476,7 @@ instr_MUL::
     ret
 
 ; DIV a b -- c
-instr_DIV::
+_DIV::
     WST_HA_dec_ptr
 .continue
     ld      l, a
@@ -505,7 +505,7 @@ instr_DIV::
     ret
 
 ; AND a b -- c
-instr_AND::
+_AND::
     WST_HA_dec_ptr
 .continue
     ld      l, a
@@ -515,7 +515,7 @@ instr_AND::
     ret
 
 ; ORA a b -- c
-instr_ORA::
+_ORA::
     WST_HA_dec_ptr
 .continue
     ld      l, a
@@ -525,7 +525,7 @@ instr_ORA::
     ret
 
 ; EOR a b -- c
-instr_EOR::
+_EOR::
     WST_HA_dec_ptr
 .continue
     ld      l, a
@@ -535,7 +535,7 @@ instr_EOR::
     ret
 
 ; SFT a shift8 -- c
-instr_SFT::
+_SFT::
     WST_HA_dec_ptr
 .continue
     ld      l, a
@@ -565,7 +565,7 @@ instr_SFT::
     ret
 
 ; INC2 a -- b
-instr_INC2::
+_INC2::
     WST_HL_dec
 .continue
     ld      c, [hl]
@@ -578,7 +578,7 @@ instr_INC2::
     ret
 
 ; POP2 a b -- 
-instr_POP2::
+_POP2::
     ldh     a, [wst_ptr]
     dec     a
     dec     a
@@ -586,7 +586,7 @@ instr_POP2::
     ret
 
 ; DUP2 a b -- a b a b
-instr_DUP2::
+_DUP2::
     WST_HL_dec
     ld      a, [hld]
     ld      b, [hl]
@@ -599,7 +599,7 @@ instr_DUP2::
     ret
 
 ; NIP2 a b c d -- c d
-instr_NIP2::
+_NIP2::
     WST_HL_dec
     ld      b, [hl]
     dec     l
@@ -613,7 +613,7 @@ instr_NIP2::
     ret
 
 ; SWP2 a b c d -- c d a b
-instr_SWP2::
+_SWP2::
     WST_HL_dec
 .continue
     ld      b, [hl]
@@ -633,7 +633,7 @@ instr_SWP2::
     ret
 
 ; OVR2 a b c d -- a b c d a b
-instr_OVR2::
+_OVR2::
     WST_HL_dec
     dec     l
     dec     l
@@ -650,7 +650,7 @@ instr_OVR2::
     ret
 
 ; ROT2 a b c d e f -- c d e f a b
-instr_ROT2::
+_ROT2::
     WST_HL_dec
 .continue
     ld      b, [hl]
@@ -677,7 +677,7 @@ instr_ROT2::
     ret
 
 ; EQU2 a b c d -- bool8
-instr_EQU2::
+_EQU2::
     WST_HL_dec
     ld      b, [hl]
     dec     l
@@ -703,7 +703,7 @@ instr_EQU2::
     ret
 
 ; NEQ2 a b c d -- bool8
-instr_NEQ2::
+_NEQ2::
     WST_HL_dec
     ld      b, [hl]
     dec     l
@@ -729,7 +729,7 @@ instr_NEQ2::
     ret
 
 ; GTH2 a b c d -- bool8
-instr_GTH2::
+_GTH2::
     WST_HL_dec
     ld      c, [hl]
     dec     l
@@ -757,7 +757,7 @@ instr_GTH2::
     ret
 
 ; LTH2 a b d c -- bool8
-instr_LTH2::
+_LTH2::
     WST_HL_dec
     ld      c, [hl]
     dec     l
@@ -785,7 +785,7 @@ instr_LTH2::
     ret
 
 ; JMP2 addr --
-instr_JMP2::
+_JMP2::
     WST_HL_dec
     ld      c, [hl]
     dec     l
@@ -802,7 +802,7 @@ instr_JMP2::
     ret
 
 ; JCN2 cond addr --
-instr_JCN2::
+_JCN2::
     WST_HL_dec
     dec     l
     dec     l
@@ -815,10 +815,10 @@ instr_JCN2::
     ld      b, [hl]
     inc     l
     ld      c, [hl]
-    jr      instr_JMP2.jump
+    jr      _JMP2.jump
 
 ; JSR2 addr --
-instr_JSR2::
+_JSR2::
     RST_HL
     ldh     a, [pc]
     ld      b, a
@@ -839,10 +839,10 @@ instr_JSR2::
     ld      [hl], c
     inc     l
     RST_PTR_L
-    jr      instr_JMP2
+    jr      _JMP2
 
 ; STH2 a b --
-instr_STH2::
+_STH2::
     WST_HL_dec
     ld      b, [hl]
     dec     l
@@ -857,7 +857,7 @@ instr_STH2::
     ret
 
 ; LDZ addr8 -- value
-instr_LDZ2::
+_LDZ2::
     WST_HL_dec
     ld      b, HIGH(zero_page)
     ld      c, [hl]
@@ -870,7 +870,7 @@ instr_LDZ2::
     ret
 
 ; STZ value addr8 --
-instr_STZ2::
+_STZ2::
     WST_HL_dec
     ld      b, HIGH(zero_page)
     ld      c, [hl]
@@ -885,7 +885,7 @@ instr_STZ2::
     ret
 
 ; LDR2 addr8 -- value
-instr_LDR2::
+_LDR2::
     WST_HL_dec
     ld      c, [hl]
     ; sign extension
@@ -906,7 +906,7 @@ instr_LDR2::
     ret
 
 ; STR2 value addr8 --
-instr_STR2::
+_STR2::
     WST_HL_dec
     ld      c, [hl]
     dec     l
@@ -930,7 +930,7 @@ instr_STR2::
     ret
 
 ; LDA2 addr16 -- value
-instr_LDA2::
+_LDA2::
     WST_HL_dec
 .continue
     ld      c, [hl]
@@ -945,7 +945,7 @@ instr_LDA2::
     ret
 
 ; STA2 value addr16 --
-instr_STA2::
+_STA2::
     WST_HL_dec
     ld      c, [hl]
     dec     l
@@ -964,12 +964,12 @@ instr_STA2::
     ld      [bc], a
     ret
 
-instr_DEI2::
+_DEI2::
     rst     Crash
 
 
 ; DEO val device8 --
-instr_DEO2::
+_DEO2::
     WST_HL_dec
     ld      d, [hl]
     dec     l
@@ -1004,7 +1004,7 @@ instr_DEO2::
     ret
 
 ; ADD2 a b -- c
-instr_ADD2::
+_ADD2::
     ld      h, HIGH(w_st)
     ldh     a, [wst_ptr]
     dec     a
@@ -1031,7 +1031,7 @@ instr_ADD2::
     ret
 
 ; SUB2 a b -- c
-instr_SUB2::
+_SUB2::
     ld      h, HIGH(w_st)
     ldh     a, [wst_ptr]
     dec     a
@@ -1057,7 +1057,7 @@ instr_SUB2::
 
 
 ; MUL2 a b c d -- e f
-instr_MUL2::
+_MUL2::
     WST_HL_dec
     ld      c, [hl]
     dec     l
@@ -1093,7 +1093,7 @@ instr_MUL2::
     ret
 
 ; DIV2 a b c d -- e f
-instr_DIV2::
+_DIV2::
     WST_HL_dec
     ld      c, [hl]
     dec     l
@@ -1161,7 +1161,7 @@ instr_DIV2::
     ret
 
 ; AND2 a b -- c
-instr_AND2::
+_AND2::
     ld      h, HIGH(w_st)
     ldh     a, [wst_ptr]
     dec     a
@@ -1180,7 +1180,7 @@ instr_AND2::
     ret
 
 ; ORA2 a b -- c
-instr_ORA2::
+_ORA2::
     ld      h, HIGH(w_st)
     ldh     a, [wst_ptr]
     dec     a
@@ -1199,7 +1199,7 @@ instr_ORA2::
     ret
 
 ; EOR2 a b -- c
-instr_EOR2::
+_EOR2::
     ld      h, HIGH(w_st)
     ldh     a, [wst_ptr]
     dec     a
@@ -1218,7 +1218,7 @@ instr_EOR2::
     ret
 
 ; SFT2 a shift8 -- c
-instr_SFT2::
+_SFT2::
     WST_HA_dec_ptr
 .continue
     ld      l, a
@@ -1254,40 +1254,40 @@ instr_SFT2::
     ret
 
 ; INCr a -- b
-instr_INCr::
+_INCr::
     ld      h, HIGH(r_st)
     ldh     a, [rst_ptr]
-    jp      instr_INC.continue ; TODO: Move to use jr
+    jp      _INC.continue ; TODO: Move to use jr
 
 ; POPr a -- 
-instr_POPr::
+_POPr::
     ldh     a, [rst_ptr]
     dec     a
     ldh     [rst_ptr], a
     ret
 
 ; NIPr a b -- b
-instr_NIPr::
+_NIPr::
     ld      h, HIGH(r_st)
     ldh     a, [rst_ptr]
     dec     a
     ldh     [rst_ptr], a
-    jp      instr_NIP.continue ; TODO: Move to use jr
+    jp      _NIP.continue ; TODO: Move to use jr
 
 ; SWPr a b -- b a
-instr_SWPr::
+_SWPr::
     ld      h, HIGH(r_st)
     ldh     a, [rst_ptr]
-    jp      instr_SWP.continue ; TODO: Move to use jr
+    jp      _SWP.continue ; TODO: Move to use jr
 
 ; ROTr a b c -- b c a
-instr_ROTr::
+_ROTr::
     ld      h, HIGH(r_st)
     ldh     a, [rst_ptr]
-    jp      instr_ROT.continue ; TODO: Move to use jr
+    jp      _ROT.continue ; TODO: Move to use jr
 
 ; DUPr a -- a a
-instr_DUPr::
+_DUPr::
     RST_HL_dec
     ld      a, [hli]
     ld      [hli], a
@@ -1295,7 +1295,7 @@ instr_DUPr::
     ret
 
 ; OVRr a b -- a b a
-instr_OVRr::
+_OVRr::
     RST_HL_dec
     dec     l
     ld      a, [hli]
@@ -1305,8 +1305,8 @@ instr_OVRr::
     ret
 
 ; EQUr a b -- bool8
-; TODO: Optimize to RSL_PTR_L earlier and jump to instr_EQU
-instr_EQUr::
+; TODO: Optimize to RSL_PTR_L earlier and jump to _EQU
+_EQUr::
     RST_HL_dec
     ld      a, [hld]
     ld      b, [hl]
@@ -1320,8 +1320,8 @@ instr_EQUr::
     ret
 
 ; NEQr a b -- bool8
-; TODO: Optimize to RSL_PTR_L earlier and jump to instr_NEQ
-instr_NEQr::
+; TODO: Optimize to RSL_PTR_L earlier and jump to _NEQ
+_NEQr::
     RST_HL_dec
     ld      a, [hld]
     ld      b, [hl]
@@ -1335,8 +1335,8 @@ instr_NEQr::
     ret
 
 ; GTHr a b -- bool8
-; TODO: Optimize to RSL_PTR_L earlier and jump to instr_GTH
-instr_GTHr::
+; TODO: Optimize to RSL_PTR_L earlier and jump to _GTH
+_GTHr::
     RST_HL_dec
     ld      a, [hld]
     ld      b, [hl]
@@ -1350,8 +1350,8 @@ instr_GTHr::
     ret
 
 ; LTHr a b -- bool8
-; TODO: Optimize to RSL_PTR_L earlier and jump to instr_LTH
-instr_LTHr::
+; TODO: Optimize to RSL_PTR_L earlier and jump to _LTH
+_LTHr::
     RST_HL_dec
     ld      a, [hld]
     ld      b, [hl]
@@ -1366,24 +1366,24 @@ instr_LTHr::
     ret
 
 ; JMPr addr --
-instr_JMPr::
+_JMPr::
     ld      h, HIGH(r_st)
     ldh     a, [rst_ptr]
     dec     a
     ldh     [rst_ptr], a
-    jp      instr_JMP.continue
+    jp      _JMP.continue
 
 ; JCNr cond8 addr --
-instr_JCNr::
+_JCNr::
     ld      h, HIGH(w_st)
     ldh     a, [wst_ptr]
     dec     a
     dec     a
     ldh     [wst_ptr], a
-    jp      instr_JCN.continue
+    jp      _JCN.continue
 
 ; JSRr addr --
-instr_JSRr::
+_JSRr::
     ldh     a, [pc]
     ld      b, a
     ldh     a, [pc+1]
@@ -1403,11 +1403,11 @@ instr_JSRr::
     inc     l
     WST_PTR_L
     ; UXN return address now on WST, continue with normal JMPr
-    jr      instr_JMPr
+    jr      _JMPr
 
 ; STHr a --
 ; TODO: Check if removing macros opens up optimizations
-instr_STHr::
+_STHr::
     RST_HL_dec
     ld      b, [hl]
     RST_PTR_L   ; destroys A
@@ -1418,12 +1418,12 @@ instr_STHr::
     ret
 
 ; LDZr addr8 -- value
-instr_LDZr::
+_LDZr::
     RST_HL_dec
-    jp      instr_LDZ.continue
+    jp      _LDZ.continue
 
 ; STZr value addr8 --
-instr_STZr::
+_STZr::
     RST_HL_dec
     ld      b, HIGH(zero_page)
     ld      c, [hl]
@@ -1434,28 +1434,28 @@ instr_STZr::
     ret
 
 ; LDRr addr8 -- value
-instr_LDRr::
+_LDRr::
     RST_HL_dec
-    jp      instr_LDR.continue
+    jp      _LDR.continue
 
 ; STRr value addr8 --
-instr_STRr::
+_STRr::
     RST_HL_dec
     ld      c, [hl]
     dec     l
     RST_PTR_L
-    jp      instr_STR.continue
+    jp      _STR.continue
 
 ; LDAr addr16 -- value
-instr_LDAr::
+_LDAr::
     ld      h, HIGH(r_st)
     ldh     a, [rst_ptr]
     dec     a
     ldh     [rst_ptr], a
-    jp      instr_LDA.continue
+    jp      _LDA.continue
 
 ; STAr value addr16 --
-instr_STAr::
+_STAr::
     RST_HL_dec
     ld      c, [hl]
     dec     l
@@ -1463,21 +1463,21 @@ instr_STAr::
     dec     l
     ld      d, [hl]
     RST_PTR_L
-    jp      instr_STA.continue
+    jp      _STA.continue
 
-instr_DEIr::
+_DEIr::
     ret
 
 ; DEOr val device8 --
-instr_DEOr::
+_DEOr::
     RST_HL_dec
     ld      d, [hl]
     dec     l
     RST_PTR_L
-    jp      instr_DEO.continue
+    jp      _DEO.continue
 
 ; ADDr a b -- c
-instr_ADDr::
+_ADDr::
     RST_HL_dec
     ld      a, [hld]
     ld      b, [hl]
@@ -1487,7 +1487,7 @@ instr_ADDr::
     ret
 
 ; SUBr a b -- c
-instr_SUBr::
+_SUBr::
     RST_HL_dec
     dec     l
     ld      a, [hli]
@@ -1498,42 +1498,42 @@ instr_SUBr::
     ret
 
 ; MUrL a b -- c
-instr_MULr::
+_MULr::
     RST_HA_dec_ptr
-    jp      instr_MUL.continue
+    jp      _MUL.continue
 
 ; DIVr a b -- c
-instr_DIVr::
+_DIVr::
     RST_HA_dec_ptr
-    jp      instr_DIV.continue
+    jp      _DIV.continue
 
 ; ANDr a b -- c
-instr_ANDr::
+_ANDr::
     RST_HA_dec_ptr
-    jp      instr_AND.continue
+    jp      _AND.continue
 
 ; ORAr a b -- c
-instr_ORAr::
+_ORAr::
     RST_HA_dec_ptr
-    jp      instr_ORA.continue
+    jp      _ORA.continue
 
 ; EORr a b -- c
-instr_EORr::
+_EORr::
     RST_HA_dec_ptr
-    jp      instr_EOR.continue
+    jp      _EOR.continue
 
 ; SFTr a shift8 -- c
-instr_SFTr::
+_SFTr::
     RST_HA_dec_ptr
-    jp      instr_SFT.continue
+    jp      _SFT.continue
 
 ; INC2r a -- b
-instr_INC2r::
+_INC2r::
     RST_HL_dec
-    jp      instr_INC2.continue
+    jp      _INC2.continue
 
 ; POP2r a b -- 
-instr_POP2r::
+_POP2r::
     ldh     a, [rst_ptr]
     dec     a
     dec     a
@@ -1541,7 +1541,7 @@ instr_POP2r::
     ret
 
 ; DUP2r a b -- a b a b
-instr_DUP2r::
+_DUP2r::
     RST_HL_dec
     ld      a, [hld]
     ld      b, [hl]
@@ -1554,21 +1554,21 @@ instr_DUP2r::
     ret
 
 ; NIP2r a b c d -- c d
-instr_NIP2r::
+_NIP2r::
     RST_HL_dec
     ld      b, [hl]
     dec     l
     ld      c, [hl]
     RST_PTR_L
-    jp      instr_NIP2.continue
+    jp      _NIP2.continue
 
 ; SWP2r a b c d -- c d a b
-instr_SWP2r::
+_SWP2r::
     RST_HL_dec
-    jp      instr_SWP2.continue
+    jp      _SWP2.continue
 
 ; OVR2r a b c d -- a b c d a b
-instr_OVR2r::
+_OVR2r::
     RST_HL_dec
     dec     l
     dec     l
@@ -1585,12 +1585,12 @@ instr_OVR2r::
     ret
 
 ; ROT2r a b c d e f -- c d e f a b
-instr_ROT2r::
+_ROT2r::
     RST_HL_dec
-    jp      instr_ROT2.continue
+    jp      _ROT2.continue
 
 ; EQU2r a b c d -- bool8
-instr_EQU2r::
+_EQU2r::
     RST_HL_dec
     ld      b, [hl]
     dec     l
@@ -1616,7 +1616,7 @@ instr_EQU2r::
     ret
 
 ; NEQ2r a b c d -- bool8
-instr_NEQ2r::
+_NEQ2r::
     RST_HL_dec
     ld      b, [hl]
     dec     l
@@ -1642,7 +1642,7 @@ instr_NEQ2r::
     ret
 
 ; GTH2r a b c d -- bool8
-instr_GTH2r::
+_GTH2r::
     RST_HL_dec
     ld      c, [hl]
     dec     l
@@ -1670,7 +1670,7 @@ instr_GTH2r::
     ret
 
 ; LTH2r a b d c -- bool8
-instr_LTH2r::
+_LTH2r::
     RST_HL_dec
     ld      c, [hl]
     dec     l
@@ -1698,15 +1698,15 @@ instr_LTH2r::
     ret
 
 ; JMP2r addr --
-instr_JMP2r::
+_JMP2r::
     RST_HL_dec
     ld      c, [hl]
     dec     l
     RST_PTR_L
-    jp      instr_JMP2.continue ; TODO: Move calls to within jr range
+    jp      _JMP2.continue ; TODO: Move calls to within jr range
 
 ; JCN2r cond addr --
-instr_JCN2r::
+_JCN2r::
     RST_HL_dec
     dec     l
     dec     l
@@ -1719,10 +1719,10 @@ instr_JCN2r::
     ld      b, [hl]
     inc     l
     ld      c, [hl]
-    jp      instr_JMP2.jump
+    jp      _JMP2.jump
 
 ; JSR2r addr --
-instr_JSR2r::
+_JSR2r::
     WST_HL
     ldh     a, [pc]
     ld      b, a
@@ -1743,10 +1743,10 @@ instr_JSR2r::
     ld      [hl], c
     inc     l
     WST_PTR_L
-    jr      instr_JMP2r
+    jr      _JMP2r
 
 ; STH2r a b --
-instr_STH2r::
+_STH2r::
     RST_HL_dec
     ld      b, [hl]
     dec     l
@@ -1761,8 +1761,8 @@ instr_STH2r::
     ret
 
 ; LDZ2r addr8 -- value
-; TODO: Consider all RST tweaking at the start so we can jump to instr_LDZ2 to save bytes
-instr_LDZ2r::
+; TODO: Consider all RST tweaking at the start so we can jump to _LDZ2 to save bytes
+_LDZ2r::
     RST_HL_dec
     ld      b, HIGH(zero_page)
     ld      c, [hl]
@@ -1775,7 +1775,7 @@ instr_LDZ2r::
     ret
 
 ; STZr value addr8 --
-instr_STZ2r::
+_STZ2r::
     RST_HL_dec
     ld      b, HIGH(zero_page)
     ld      c, [hl]
@@ -1790,7 +1790,7 @@ instr_STZ2r::
     ret
 
 ; LDR2r addr8 -- value
-instr_LDR2r::
+_LDR2r::
     RST_HL_dec
     ld      c, [hl]
     ; sign extension
@@ -1811,7 +1811,7 @@ instr_LDR2r::
     ret
 
 ; STR2r value addr8 --
-instr_STR2r::
+_STR2r::
     RST_HL_dec
     ld      c, [hl]
     dec     l
@@ -1819,15 +1819,15 @@ instr_STR2r::
     dec     l
     ld      d, [hl]
     RST_PTR_L
-    jp      instr_STR2.continue
+    jp      _STR2.continue
 
 ; LDA2r addr16 -- value
-instr_LDA2r::
+_LDA2r::
     RST_HL_dec
-    jp      instr_LDA2.continue
+    jp      _LDA2.continue
 
 ; STA2r value addr16 --
-instr_STA2r::
+_STA2r::
     RST_HL_dec
     ld      c, [hl]
     dec     l
@@ -1837,13 +1837,13 @@ instr_STA2r::
     dec     l
     ld      d, [hl]
     RST_PTR_L
-    jp      instr_STA2
+    jp      _STA2
 
-instr_DEI2r::
+_DEI2r::
     rst     Crash
 
 ; DEOr val device8 --
-instr_DEO2r::
+_DEO2r::
     RST_HL_dec
     ld      d, [hl]
     dec     l
@@ -1851,81 +1851,81 @@ instr_DEO2r::
     dec     l
     ld      c, [hl]
     RST_PTR_L
-    jp      instr_DEO2.continue
+    jp      _DEO2.continue
 
 ; ADD2r a b -- c
-instr_ADD2r::
+_ADD2r::
     ld      h, HIGH(r_st)
     ldh     a, [rst_ptr]
     dec     a
     ld      l, a
     dec     a
     ldh     [rst_ptr], a
-    jp      instr_ADD2.continue
+    jp      _ADD2.continue
 
 ; SUB2r a b -- c
-instr_SUB2r::
+_SUB2r::
     ld      h, HIGH(r_st)
     ldh     a, [rst_ptr]
     dec     a
     ld      l, a
     dec     a
     ldh     [rst_ptr], a
-    jp      instr_SUB2.continue
+    jp      _SUB2.continue
 
 ; MUL2r a b c d -- e f
-instr_MUL2r::
+_MUL2r::
     RST_HL_dec
     ld      c, [hl]
     dec     l
     RST_PTR_L
-    jp      instr_MUL2.continue
+    jp      _MUL2.continue
 
 ; DIV2r a b c d -- e f
-instr_DIV2r::
+_DIV2r::
     RST_HL_dec
     ld      c, [hl]
     dec     l
     RST_PTR_L
-    jp      instr_DIV2.continue
+    jp      _DIV2.continue
 
 ; AND2r a b -- c
-instr_AND2r::
+_AND2r::
     ld      h, HIGH(r_st)
     ldh     a, [rst_ptr]
     dec     a
     ld      l, a
     dec     a
     ldh     [rst_ptr], a
-    jp      instr_AND2.continue
+    jp      _AND2.continue
 
 ; ORA2r a b -- c
-instr_ORA2r::
+_ORA2r::
     ld      h, HIGH(r_st)
     ldh     a, [rst_ptr]
     dec     a
     ld      l, a
     dec     a
     ldh     [rst_ptr], a
-    jp      instr_ORA2.continue
+    jp      _ORA2.continue
 
 ; EOR2r a b -- c
-instr_EOR2r::
+_EOR2r::
     ld      h, HIGH(r_st)
     ldh     a, [rst_ptr]
     dec     a
     ld      l, a
     dec     a
     ldh     [rst_ptr], a
-    jp      instr_EOR2.continue
+    jp      _EOR2.continue
 
 ; SFT2r a shift8 -- c
-instr_SFT2r::
+_SFT2r::
     RST_HA_dec_ptr
-    jp      instr_SFT2.continue
+    jp      _SFT2.continue
 
 ; LIT -- a
-instr_LIT::
+_LIT::
     PC_to_B
     inc     hl          ; increment PC, and store new value
     ld      a, h
@@ -1939,7 +1939,7 @@ instr_LIT::
     ret
 
 ; INCk a -- a b
-instr_INCk::
+_INCk::
     WST_HL_dec
     ld      a, [hli]
     inc     a
@@ -1948,42 +1948,42 @@ instr_INCk::
     ret
 
 ; POPk a -- a
-instr_POPk::
+_POPk::
     ret
 
 ; DUPk a -- a a a
-instr_DUPk::
+_DUPk::
     WST_HL_dec
     ld      a, [hli]
     ld      [hli], a
-    ld      [hli], a    ; TODO: Jump to instr_DUP's ld [hli], a to save bytes?
+    ld      [hli], a    ; TODO: Jump to _DUP's ld [hli], a to save bytes?
     WST_PTR_L
     ret
 
 ; NIPk a b -- a b
-instr_NIPk::
+_NIPk::
     ret
 
-instr_SWPk::
-instr_OVRk::
-instr_ROTk::
-instr_EQUk::
-instr_NEQk::
-instr_GTHk::
-instr_LTHk::
-instr_JMPk::
-instr_JCNk::
-instr_JSRk::
-instr_STHk::
-instr_LDZk::
-instr_STZk::
-instr_LDRk::
-instr_STRk::
+_SWPk::
+_OVRk::
+_ROTk::
+_EQUk::
+_NEQk::
+_GTHk::
+_LTHk::
+_JMPk::
+_JCNk::
+_JSRk::
+_STHk::
+_LDZk::
+_STZk::
+_LDRk::
+_STRk::
     rst     Crash
 
 
 ; LDAk addr16 -- addr16 value
-instr_LDAk::
+_LDAk::
     WST_HL_dec
     dec     l
     ld      b, [hl]
@@ -1998,12 +1998,12 @@ instr_LDAk::
     WST_PTR_L
     ret
 
-instr_STAk::
-instr_DEIk::
-instr_DEOk::
+_STAk::
+_DEIk::
+_DEOk::
 
 ; ADDk a b -- a b c
-instr_ADDk::
+_ADDk::
     WST_HL_dec
     ld      a, [hld]
     ld      b, [hl]
@@ -2015,7 +2015,7 @@ instr_ADDk::
     ret
 
 ; SUBk a b -- a b c
-instr_SUBk::
+_SUBk::
     WST_HL_dec
     dec     l
     ld      a, [hli]
@@ -2025,11 +2025,11 @@ instr_SUBk::
     WST_PTR_L
     ret
 
-instr_MULk::
-instr_DIVk::
+_MULk::
+_DIVk::
 
 ; ANDk a b -- a b c
-instr_ANDk::
+_ANDk::
     WST_HL_dec
     ld      a, [hld]
     and     [hl]
@@ -2040,7 +2040,7 @@ instr_ANDk::
     ret
 
 ; ORAk a b -- a b c
-instr_ORAk::
+_ORAk::
     WST_HL_dec
     ld      a, [hld]
     or      [hl]
@@ -2051,7 +2051,7 @@ instr_ORAk::
     ret
 
 ; EORk a b -- a b c
-instr_EORk::
+_EORk::
     WST_HL_dec
     ld      a, [hld]
     xor     [hl]
@@ -2062,7 +2062,7 @@ instr_EORk::
     ret
 
 ; SFTk a shift8 -- a shift8 c
-instr_SFTk::
+_SFTk::
     WST_HL_dec
     ld      b, [hl]
     dec     l
@@ -2094,7 +2094,7 @@ instr_SFTk::
     ret
 
 ; LIT2 -- a
-instr_LIT2::
+_LIT2::
     PC_to_HL
     ld      b, [hl]
     inc     hl      ; must be a 16bit inc
@@ -2109,7 +2109,7 @@ instr_LIT2::
     WST_PTR_L
     ret
 
-instr_INC2k::
+_INC2k::
     WST_HL_dec
     ld      c, [hl]
     dec     l
@@ -2124,100 +2124,100 @@ instr_INC2k::
     WST_PTR_L
     ret
 
-instr_POP2k::
-instr_DUP2k::
-instr_NIP2k::
-instr_SWP2k::
-instr_OVR2k::
-instr_ROT2k::
-instr_EQU2k::
-instr_NEQ2k::
-instr_GTH2k::
-instr_LTH2k::
-instr_JMP2k::
-instr_JCN2k::
-instr_JSR2k::
-instr_STH2k::
-instr_LDZ2k::
-instr_STZ2k::
-instr_LDR2k::
-instr_STR2k::
-instr_LDA2k::
-instr_STA2k::
-instr_DEI2k::
-instr_DEO2k::
-instr_ADD2k::
-instr_SUB2k::
-instr_MUL2k::
-instr_DIV2k::
-instr_AND2k::
-instr_ORA2k::
-instr_EOR2k::
-instr_SFT2k::
+_POP2k::
+_DUP2k::
+_NIP2k::
+_SWP2k::
+_OVR2k::
+_ROT2k::
+_EQU2k::
+_NEQ2k::
+_GTH2k::
+_LTH2k::
+_JMP2k::
+_JCN2k::
+_JSR2k::
+_STH2k::
+_LDZ2k::
+_STZ2k::
+_LDR2k::
+_STR2k::
+_LDA2k::
+_STA2k::
+_DEI2k::
+_DEO2k::
+_ADD2k::
+_SUB2k::
+_MUL2k::
+_DIV2k::
+_AND2k::
+_ORA2k::
+_EOR2k::
+_SFT2k::
 
-instr_LITr::
-instr_INCkr::
-instr_POPkr::
-instr_DUPkr::
-instr_NIPkr::
-instr_SWPkr::
-instr_OVRkr::
-instr_ROTkr::
-instr_EQUkr::
-instr_NEQkr::
-instr_GTHkr::
-instr_LTHkr::
-instr_JMPkr::
-instr_JCNkr::
-instr_JSRkr::
-instr_STHkr::
-instr_LDZkr::
-instr_STZkr::
-instr_LDRkr::
-instr_STRkr::
-instr_LDAkr::
-instr_STAkr::
-instr_DEIkr::
-instr_DEOkr::
-instr_ADDkr::
-instr_SUBkr::
-instr_MULkr::
-instr_DIVkr::
-instr_ANDkr::
-instr_ORAkr::
-instr_EORkr::
-instr_SFTkr::
+_LITr::
+_INCkr::
+_POPkr::
+_DUPkr::
+_NIPkr::
+_SWPkr::
+_OVRkr::
+_ROTkr::
+_EQUkr::
+_NEQkr::
+_GTHkr::
+_LTHkr::
+_JMPkr::
+_JCNkr::
+_JSRkr::
+_STHkr::
+_LDZkr::
+_STZkr::
+_LDRkr::
+_STRkr::
+_LDAkr::
+_STAkr::
+_DEIkr::
+_DEOkr::
+_ADDkr::
+_SUBkr::
+_MULkr::
+_DIVkr::
+_ANDkr::
+_ORAkr::
+_EORkr::
+_SFTkr::
 
-instr_LIT2r::
-instr_INC2kr::
-instr_POP2kr::
-instr_DUP2kr::
-instr_NIP2kr::
-instr_SWP2kr::
-instr_OVR2kr::
-instr_ROT2kr::
-instr_EQU2kr::
-instr_NEQ2kr::
-instr_GTH2kr::
-instr_LTH2kr::
-instr_JMP2kr::
-instr_JCN2kr::
-instr_JSR2kr::
-instr_STH2kr::
-instr_LDZ2kr::
-instr_STZ2kr::
-instr_LDR2kr::
-instr_STR2kr::
-instr_LDA2kr::
-instr_STA2kr::
-instr_DEI2kr::
-instr_DEO2kr::
-instr_ADD2kr::
-instr_SUB2kr::
-instr_MUL2kr::
-instr_DIV2kr::
-instr_AND2kr::
-instr_ORA2kr::
-instr_EOR2kr::
-instr_SFT2kr::
+_LIT2r::
+_INC2kr::
+_POP2kr::
+_DUP2kr::
+_NIP2kr::
+_SWP2kr::
+_OVR2kr::
+_ROT2kr::
+_EQU2kr::
+_NEQ2kr::
+_GTH2kr::
+_LTH2kr::
+_JMP2kr::
+_JCN2kr::
+_JSR2kr::
+_STH2kr::
+_LDZ2kr::
+_STZ2kr::
+_LDR2kr::
+_STR2kr::
+_LDA2kr::
+_STA2kr::
+_DEI2kr::
+_DEO2kr::
+_ADD2kr::
+_SUB2kr::
+_MUL2kr::
+_DIV2kr::
+_AND2kr::
+_ORA2kr::
+_EOR2kr::
+_SFT2kr::
     rst     Crash
