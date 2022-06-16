@@ -91,7 +91,7 @@ Reset::
     ; xor a
     ldh     [hSCY], a
     ldh     [hSCX], a
-    ld      a, LCDCF_ON | LCDCF_BGON
+    ld      a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8000
     ldh     [hLCDC], a
     ; And turn the LCD on!
     ldh     [rLCDC], a
