@@ -24,14 +24,14 @@ OLDLIC := 0x33
 # MBC type, tells which hardware is in the cart
 # See https://gbdev.io/pandocs/#_0147-cartridge-type or consult any copy of Pan Docs
 # If using no MBC, consider enabling `-t` below
-MBC := 0x00
+MBC := 0x1A
 
 # ROM size is set automatically by RGBFIX
 
 # Size of the on-board SRAM; MBC type should indicate the presence of RAM
 # See https://gbdev.io/pandocs/#_0149-ram-size or consult any copy of Pan Docs
 # Set this to 0 when using MBC2's built-in SRAM
-SRAMSIZE := 0x00
+SRAMSIZE := 0x05
 
 # ROM name
 ROMNAME := uxngb
