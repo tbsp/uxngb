@@ -167,6 +167,8 @@ VBlankHandler:
     xor     a
     ldh     [hVBlankFlag], a
 
+    push    bc
+
     ld      c, LOW(rP1)
     ld      a, $20 ; Select D-pad
     ldh     [c], a
@@ -216,6 +218,8 @@ ENDR
     ldh     [hPressedKeys], a
     ld      a, b
     ldh     [hHeldKeys], a
+
+    pop     bc
 
     pop     af ; Pop off return address as well to exit infinite loop
 .lagFrame
