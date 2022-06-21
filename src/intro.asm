@@ -1,8 +1,23 @@
-DEF PageProgram EQU $0100
+DEF MODE_CLI        EQU $00 ; mode with console input/output devices
+DEF MODE_VARVARA    EQU $01 ; mode with varvara compliant devices (very slow Screen due to lack of bitmap graphical hardware support)
+DEF MODE_TILED      EQU $02 ; mode with tile-based devices for improved performance on tile-based hardware
+
+DEF MODE            EQU MODE_CLI
+
+; Include different files based on active mode
+IF MODE == MODE_CLI
+    include "emu_cli/cli_devices.asm"
+    include "emu_cli/cli_functions.asm"
+ELIF MODE == MODE_VARVAR
+
+ELSE
+
+ENDC
+
+DEF PageProgram     EQU $0100
 
 SECTION "Font Tiles", ROMX
 FontTiles:
-    ;incbin "res/chicago8x8.2bpp"
     incbin "res/comic8x8_linear.2bpp"
 .end
 
@@ -30,23 +45,8 @@ cursor_addr::   ds 2
 SECTION "Intro", ROMX
 
 Intro::
-    ; Load console font
-    ld      de, FontTiles
-    ld      hl, $8000
-    ld      bc, FontTiles.end - FontTiles
-    call    LCDMemcpy
-
-    ; Setup console cursor
-    ld      a, HIGH($9800)
-    ld      [cursor_addr], a
-    ld      a, LOW($9800)
-    ld      [cursor_addr+1], a
-
-    ; Clear console
-    ld      hl, $9800
-    ld      bc, $0400
-    xor     a
-    call    LCDMemset
+    ; call mode-specific initialization
+    call    mode_init
 
     ; Initialize emulator state
 
@@ -138,25 +138,6 @@ system_halt:
     rst     WaitVBlank
     jr      system_halt
 
-
-SECTION "Device Handlers", ROM0, ALIGN[7]
-device_handlers::
-    dw dev_system_dei, dev_system_dei2, dev_system_deo, dev_system_deo2 ; system
-    dw dev_nil, dev_nil, dev_console_deo, dev_console_deo2              ; console
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty (file0)
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty (file1)
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty (datetime)
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
 
 SECTION "Instruction Jump Table", ROM0
 instr_jump_table:
