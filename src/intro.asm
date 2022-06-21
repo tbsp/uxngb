@@ -134,6 +134,10 @@ brk_loop:
 
     jr      brk_loop
 
+system_halt:
+    rst     WaitVBlank
+    jr      system_halt
+
 
 SECTION "Device Handlers", ROM0, ALIGN[7]
 device_handlers::
@@ -194,5 +198,5 @@ SECTION "UXN ROM", ROMX, ALIGN[$0100]
 staticROM:
     ;incbin "res/tests.rom"
     ;incbin "res/console.rom"
-    incbin "res/tests_noStacks.rom"
+    incbin "res/tests_extended.rom"
 .end

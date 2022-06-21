@@ -57,6 +57,52 @@ RST_HA_dec_ptr: MACRO
     ldh     [rst_ptr], a
     ENDM
 
+WBIT_2K_SETUP: MACRO
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    inc     a
+    inc     a
+    ldh     [wst_ptr], a
+.continue
+    sub     6
+    ld      l, a
+    ENDM
+
+WMATH_2K_SETUP: MACRO
+    WBIT_2K_SETUP
+    ld      d, [hl]
+    inc     l
+    ld      e, [hl]
+    inc     l
+    ld      b, [hl]
+    inc     l
+    ld      c, [hl]
+    inc     l
+    ENDM
+
+RBIT_2K_SETUP: MACRO
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    inc     a
+    inc     a
+    ldh     [rst_ptr], a
+.continue
+    sub     6
+    ld      l, a
+    ENDM
+
+RMATH_2K_SETUP: MACRO
+    RBIT_2K_SETUP
+    ld      d, [hl]
+    inc     l
+    ld      e, [hl]
+    inc     l
+    ld      b, [hl]
+    inc     l
+    ld      c, [hl]
+    inc     l
+    ENDM
+
 PC_to_HL: MACRO
     ldh     a, [pc]
     ld      h, a
@@ -392,7 +438,7 @@ _STA::
 _DEI::
     ret
 
-; DEO val device8 --
+; DEO value device8 --
 _DEO::
     WST_HL_dec
     ld      d, [hl]
@@ -585,19 +631,6 @@ _POP2::
     ldh     [wst_ptr], a
     ret
 
-; DUP2 a b -- a b a b
-_DUP2::
-    WST_HL_dec
-    ld      a, [hld]
-    ld      b, [hl]
-    inc     l
-    inc     l
-    ld      [hl], b
-    inc     l
-    ld      [hli], a
-    WST_PTR_L
-    ret
-
 ; NIP2 a b c d -- c d
 _NIP2::
     WST_HL_dec
@@ -616,8 +649,7 @@ _NIP2::
 _SWP2::
     WST_HL_dec
 .continue
-    ld      b, [hl]
-    dec     l
+    ld      a, [hld]
     ld      c, [hl]
     dec     l
     ld      d, [hl]
@@ -625,28 +657,10 @@ _SWP2::
     ld      e, [hl]
     ld      [hl], c
     inc     l
-    ld      [hl], b
-    inc     l
+    ld      [hli], a
     ld      [hl], e
     inc     l
     ld      [hl], d
-    ret
-
-; OVR2 a b c d -- a b c d a b
-_OVR2::
-    WST_HL_dec
-    dec     l
-    dec     l
-    ld      a, [hld]
-    ld      b, [hl]
-    inc     l
-    inc     l
-    inc     l
-    inc     l
-    ld      [hl], b
-    inc     l
-    ld      [hli], a
-    WST_PTR_L
     ret
 
 ; ROT2 a b c d e f -- c d e f a b
@@ -674,6 +688,36 @@ _ROT2::
     ld      [hl], c
     inc     l
     ld      [hl], b
+    ret
+    
+; DUP2 a b -- a b a b
+_DUP2::
+    WST_HL_dec
+    ld      a, [hld]
+    ld      b, [hl]
+    inc     l
+    inc     l
+    ld      [hl], b
+    inc     l
+    ld      [hli], a
+    WST_PTR_L
+    ret
+
+; OVR2 a b c d -- a b c d a b
+_OVR2::
+    WST_HL_dec
+    dec     l
+    dec     l
+    ld      a, [hld]
+    ld      b, [hl]
+    inc     l
+    inc     l
+    inc     l
+    inc     l
+    ld      [hl], b
+    inc     l
+    ld      [hli], a
+    WST_PTR_L
     ret
 
 ; EQU2 a b c d -- bool8
@@ -808,6 +852,7 @@ _JCN2::
     dec     l
     ld      c, [hl]
     WST_PTR_L
+.continue
     ld      a, c
     or      a
     ret     z   ; condition not met
@@ -848,6 +893,7 @@ _STH2::
     dec     l
     ld      c, [hl]
     WST_PTR_L   ; destroys A
+.continue
     RST_HL      ; destroys A
     ld      [hl], c
     inc     l
@@ -968,7 +1014,7 @@ _DEI2::
     rst     Crash
 
 
-; DEO val device8 --
+; DEO value device8 --
 _DEO2::
     WST_HL_dec
     ld      d, [hl]
@@ -1949,6 +1995,42 @@ _INCk::
 
 ; POPk a -- a
 _POPk::
+    ; TODO: Underflow error if stack if empty
+    ret
+
+; NIPk a b -- a b b
+_NIPk::
+    jp      _DUP
+
+; SWPk a b -- a b b a
+_SWPk::
+    WST_HL_dec
+    ld      a, [hld]
+    ld      b, [hl]
+    inc     l
+    inc     l
+    ld      [hli], a
+    ld      [hl], b
+    inc     l
+    WST_PTR_L
+    ret
+
+; ROTk a b c -- a b c b c a
+_ROTk::
+    WST_HL_dec
+    ld      b, [hl]
+    dec     l
+    ld      a, [hld]
+    ld      c, [hl]
+    inc     l
+    inc     l
+    inc     l
+    ld      [hli], a
+    ld      [hl], b
+    inc     l
+    ld      [hl], c
+    inc     l
+    WST_PTR_L
     ret
 
 ; DUPk a -- a a a
@@ -1960,27 +2042,192 @@ _DUPk::
     WST_PTR_L
     ret
 
-; NIPk a b -- a b
-_NIPk::
+; OVRk a b -- a b a b a
+_OVRk::
+    WST_HL_dec
+    ld      b, [hl]
+    dec     l
+    ld      a, [hli]
+    inc     l
+    ld      [hli], a
+    ld      [hl], b
+    inc     l
+    ld      [hli], a
+    WST_PTR_L
     ret
 
-_SWPk::
-_OVRk::
-_ROTk::
+; EQUk a b -- a b bool8
 _EQUk::
-_NEQk::
-_GTHk::
-_LTHk::
-_JMPk::
-_JCNk::
-_JSRk::
-_STHk::
-_LDZk::
-_STZk::
-_LDRk::
-_STRk::
-    rst     Crash
+    WST_HL_dec
+    ld      a, [hld]
+    ld      b, [hl]
+    cp      b
+    ld      a, 0
+    jr      nz, .notEqual
+    inc     a
+.notEqual
+    inc     l
+    inc     l
+    ld      [hli], a
+    WST_PTR_L
+    ret
 
+; NEQk a b -- a b bool8
+_NEQk::
+    WST_HL_dec
+    ld      a, [hld]
+    ld      b, [hl]
+    cp      b
+    ld      a, 0
+    jr      z, .equal
+    inc     a
+.equal
+    inc     l
+    inc     l
+    ld      [hli], a
+    WST_PTR_L
+    ret
+
+; GTHk a b -- a b bool8
+_GTHk::
+    WST_HL_dec
+    ld      a, [hld]
+    ld      b, [hl]
+    cp      b
+    ld      a, 0
+    jr      nc, .notGreater
+    inc     a
+.notGreater
+    inc     l
+    inc     l
+    ld      [hli], a
+    WST_PTR_L
+    ret
+
+; LTHk a b -- a b bool8
+_LTHk::
+    WST_HL_dec
+    ld      a, [hld]
+    ld      b, [hl]
+    cp      b
+    ld      a, 0
+    jr      c, .notLesser
+    jr      z, .notLesser
+    inc     a
+.notLesser
+    inc     l
+    inc     l
+    ld      [hli], a
+    WST_PTR_L
+    ret
+
+; JMPk addr -- addr
+_JMPk::
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    dec     a
+    jp      _JMP.continue
+
+; JCNk cond8 addr -- cond8 addr
+_JCNk::
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    dec     a
+    dec     a
+    jp      _JCN.continue
+
+; JSRk addr -- addr
+_JSRk::
+    ldh     a, [pc]
+    ld      b, a
+    ldh     a, [pc+1]
+    ld      c, a
+
+    ; Offset back to UXN address, in case someone does some direct manipulation
+    ; TODO: Account for banking!
+    ld      hl, $ffff & -uxn_memory
+    add     hl, bc
+    ld      b, h
+    ld      c, l
+
+    RST_HL
+    ld      [hl], b
+    inc     l
+    ld      [hl], c
+    inc     l
+    RST_PTR_L
+    ; UXN return address now on RST, continue with normal JMPk
+    jr      _JMPk
+
+; STHk a -- a
+; TODO: Check if removing macros opens up optimizations
+_STHk::
+    WST_HL_dec
+    ld      b, [hl]
+    RST_HL_dec
+    ld      [hl], b
+    ret
+
+; LDZk addr8 -- addr8 value
+_LDZk::
+    WST_HL_dec
+    ld      b, HIGH(zero_page)
+    ld      c, [hl]
+    ld      a, [bc]
+    inc     l
+    ld      [hl], a
+    WST_PTR_L
+    ret
+
+; STZk value addr8 -- value addr8
+_STZk::
+    WST_HL_dec
+.continue
+    ld      b, HIGH(zero_page)
+    ld      c, [hl]
+    dec     l
+    ld      a, [hl]
+    ld      [bc], a
+    ret
+
+; LDRk addr8 -- addr8 value
+_LDRk::
+    WST_HL_dec
+.continue
+    ld      c, [hl]
+    ; sign extension
+    ld      a, c
+    add     a       ; push sign into carry
+    sbc     a       ; turn into 0 or -1
+    ld      b, a    ; high byte
+    push    hl
+    PC_to_HL
+    add     hl, bc
+    ld      a, [hl]
+    pop     hl
+    inc     l
+    ld      [hli], a
+    WST_PTR_L
+    ret
+
+; STRk value addr8 -- value addr8
+_STRk::
+    WST_HL_dec
+.continue
+    ld      c, [hl]
+    dec     l
+    ld      d, [hl]
+    ; sign extension
+    ld      a, c
+    add     a       ; push sign into carry
+    sbc     a       ; turn into 0 or -1
+    ld      b, a    ; high byte
+    push    hl
+    PC_to_HL
+    add     hl, bc
+    ld      [hl], d
+    pop     hl
+    ret
 
 ; LDAk addr16 -- addr16 value
 _LDAk::
@@ -1998,9 +2245,29 @@ _LDAk::
     WST_PTR_L
     ret
 
+; STAk value addr16 -- value addr16
 _STAk::
+    WST_HL_dec
+.continue
+    ld      c, [hl]
+    dec     l
+    ld      b, [hl]
+    dec     l
+    ld      d, [hl]
+    BC_to_UXN_Banked
+    ld      a, d
+    ld      [bc], a
+    ret
+
 _DEIk::
+    ret
+
+; DEOk value device8 -- value device8
 _DEOk::
+    WST_HL_dec
+    ld      d, [hl]
+    dec     l
+    jp      _DEO.continue
 
 ; ADDk a b -- a b c
 _ADDk::
@@ -2025,8 +2292,78 @@ _SUBk::
     WST_PTR_L
     ret
 
+; MULk a b -- a b c
 _MULk::
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    inc     a
+    ldh     [wst_ptr], a
+    dec     a
+    dec     a
+.continue
+    ld      l, a
+    ld      a, [hld]
+    ld      e, [hl]
+    push    hl
+    ld      h, a
+    ld      l, 0
+    ld      d, l
+
+    ; Taken from: https://www.cpcwiki.eu/index.php/Programming:Integer_Multiplication#Classic_8bit_.2A_8bit_Unsigned
+    ; TODO: Compare to https://github.com/pinobatch/little-things-gb/blob/f0d7ae77e6b6beebfd4a740f5f8f0ace5e330a11/bdos/src/math.z80#L227
+    sla     h
+    jr      nc, :+
+    ld      l, e
+:
+    REPT 7
+    add     hl, hl
+    jr      nc, :+
+    add     hl, de
+:   
+    ENDR
+
+    ld      a, l
+    pop     hl
+    inc     l
+    inc     l
+    ld      [hl], a
+    ret
+
+; DIVk a b -- a b c
 _DIVk::
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    inc     a
+    ldh     [wst_ptr], a
+    dec     a
+    dec     a
+.continue
+    ld      l, a
+    ld      c, [hl]
+    dec     l
+    ld      e, [hl]
+
+    ; Source: http://map.grauw.nl/articles/mult_div_shifts.php
+    xor     a
+    ld      b, 8
+.loop
+    rl      e
+    rla
+    sub     c
+    jr      nc, .noAdd
+    add     a, c
+.noAdd
+    dec     b
+    jr      nz, .loop
+    ld      b, a
+    ld      a, e
+    rla
+    cpl
+
+    inc     l
+    inc     l
+    ld      [hl], a
+    ret
 
 ; ANDk a b -- a b c
 _ANDk::
@@ -2063,7 +2400,14 @@ _EORk::
 
 ; SFTk a shift8 -- a shift8 c
 _SFTk::
-    WST_HL_dec
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    inc     a
+    ldh     [wst_ptr], a
+.continue
+    dec     a
+    dec     a
+    ld      l, a
     ld      b, [hl]
     dec     l
     ld      c, [hl]
@@ -2089,8 +2433,6 @@ _SFTk::
     inc     l   ; TODO: Optimize hl traversal
     inc     l
     ld      [hl], c
-    inc     l
-    WST_PTR_L
     ret
 
 ; LIT2 -- a
@@ -2109,6 +2451,7 @@ _LIT2::
     WST_PTR_L
     ret
 
+; INC2k a -- a b
 _INC2k::
     WST_HL_dec
     ld      c, [hl]
@@ -2124,100 +2467,1287 @@ _INC2k::
     WST_PTR_L
     ret
 
+; POP2k a b -- a b
 _POP2k::
-_DUP2k::
+    ; TODO: Underflow error if stack if empty
+    ret
+
+; NIP2k a b -- a b b
 _NIP2k::
+    jp      _DUP2
+
+; SWP2k a b c d -- a b c d c d a b
 _SWP2k::
-_OVR2k::
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    add     4
+    ldh     [wst_ptr], a
+.continue
+    sub     5
+    ld      l, a
+    ld      b, [hl]
+    dec     l
+    ld      c, [hl]
+    dec     l
+    ld      d, [hl]
+    dec     l
+    ld      e, [hl]
+
+    ld      l, a
+    inc     l
+    ld      [hl], c
+    inc     l
+    ld      [hl], b
+    inc     l
+    ld      [hl], e
+    inc     l
+    ld      [hl], d
+    ret
+
+; ROT2k a b c d e f -- a b c d e f c d e f a b
+; TODO: Try to speed up this register-pressure traversal
 _ROT2k::
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    add     6
+    ldh     [wst_ptr], a
+.continue
+    sub     12          ; jump to the start of a, b
+    ld      l, a
+
+    ld      b, [hl]     ; get a, b
+    inc     l
+    ld      c, [hl]
+    ld      a, l        ; jump to the end
+    add     9
+    ld      l, a
+    ld      [hl], b     ; store a, b
+    inc     l
+    ld      [hl], c
+
+    ld      a, l        ; jump to the start of c, d, e, f
+    sub     9
+    ld      l, a
+    ld      b, [hl]     ; get c, d, e, f
+    inc     l
+    ld      c, [hl]
+    inc     l
+    ld      d, [hl]
+    inc     l
+    ld      e, [hl]
+    inc     l
+
+    ld      [hl], b     ; store c, d, e, f
+    inc     l
+    ld      [hl], c
+    inc     l
+    ld      [hl], d
+    inc     l
+    ld      [hl], e
+    inc     l
+
+    ret
+
+; DUP2k a b -- a b a b a b
+_DUP2k::
+    WST_HL_dec
+    ld      a, [hld]
+    ld      b, [hl]
+    inc     l
+    inc     l
+    ld      [hl], b
+    inc     l
+    ld      [hli], a
+    ld      [hl], b
+    inc     l
+    ld      [hli], a
+    WST_PTR_L
+    ret
+
+; OVR2k a b c d -- a b c d a b c d a b
+_OVR2k::
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    add     6
+    ldh     [wst_ptr], a
+.continue
+    sub     10
+    ld      l, a
+
+    ld      a, [hli]    ; read starting values
+    ld      c, [hl]
+    inc     l
+    ld      d, [hl]
+    inc     l
+    ld      e, [hl]
+    inc     l
+
+    ld      [hli], a    ; store keep copy
+    ld      [hl], c
+    inc     l
+    ld      [hl], d
+    inc     l
+    ld      [hl], e
+    inc     l
+
+    ld      [hli], a    ; store OVR short
+    ld      [hl], c
+
+    ret
+
+; EQU2k a b c d -- a b c d bool8
 _EQU2k::
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    inc     a
+    ldh     [wst_ptr], a
+.continue
+    sub     5
+    ld      l, a
+
+    ld      b, [hl]
+    inc     l
+    ld      c, [hl]
+    inc     l
+    ld      d, [hl]
+    inc     l
+    ld      e, [hl]
+    inc     l
+    push    hl
+    ld      h, 0
+    ld      a, b
+    cp      d
+    jr      nz, .notEqual
+    ld      a, c
+    cp      e
+    jr      nz, .notEqual
+    inc     h
+.notEqual
+    ld      a, h
+    pop     hl
+    ld      [hl], a
+    ret
+
+; NEQ2k a b c d -- a b c d bool8
 _NEQ2k::
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    inc     a
+    ldh     [wst_ptr], a
+.continue
+    sub     5
+    ld      l, a
+
+    ld      b, [hl]
+    inc     l
+    ld      c, [hl]
+    inc     l
+    ld      d, [hl]
+    inc     l
+    ld      e, [hl]
+    inc     l
+    push    hl
+    ld      h, 0
+    ld      a, b
+    cp      d
+    jr      z, .equal
+    ld      a, c
+    cp      e
+    jr      z, .equal
+    inc     h
+.equal
+    ld      a, h
+    pop     hl
+    ld      [hl], a
+    ret
+
+; GTH2k a b c d -- a b c d bool8
 _GTH2k::
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    inc     a
+    ldh     [wst_ptr], a
+.continue
+    sub     5
+    ld      l, a
+
+    ld      d, [hl]
+    inc     l
+    ld      e, [hl]
+    inc     l
+    ld      b, [hl]
+    inc     l
+    ld      c, [hl]
+    inc     l
+    push    hl
+    ld      h, 0
+    ld      a, b
+    cp      d
+    jr      c, .greaterThan     ; if d > b, de > bc
+    jr      nz, .notGreaterThan      
+    ld      a, c
+    cp      e
+    jr      nc, .notGreaterThan
+.greaterThan
+    inc     h
+.notGreaterThan
+    ld      a, h
+    pop     hl
+    ld      [hl], a
+    ret
+
+; LTH2k a b d c -- a b d c bool8
 _LTH2k::
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    inc     a
+    ldh     [wst_ptr], a
+.continue
+    sub     5
+    ld      l, a
+
+    ld      d, [hl]
+    inc     l
+    ld      e, [hl]
+    inc     l
+    ld      b, [hl]
+    inc     l
+    ld      c, [hl]
+    inc     l
+    push    hl
+    ld      h, 0
+    ld      a, d
+    cp      b
+    jr      c, .lessThan
+    jr      nz, .notLessThan      
+    ld      a, e
+    cp      c
+    jr      nc, .notLessThan
+.lessThan
+    inc     h
+.notLessThan
+    ld      a, h
+    pop     hl
+    ld      [hl], a
+    ret
+
+; JMP2k addr -- addr
 _JMP2k::
+    WST_HL_dec
+    ld      c, [hl]
+    dec     l
+    jp      _JMP2.continue
+
+; JCN2k cond addr -- cond addr
 _JCN2k::
+    WST_HL_dec
+    dec     l
+    dec     l
+    ld      c, [hl]
+    jp      _JCN2.continue
+
+; JSR2k addr -- addr
 _JSR2k::
+    ; TODO: Find a way to reuse _JSR2, which is identical except for where it jumps at the end
+    RST_HL
+    ldh     a, [pc]
+    ld      b, a
+    ldh     a, [pc+1]
+    ld      c, a
+
+    push    hl
+    ; Offset back to UXN address, in case someone does some direct manipulation
+    ; TODO: Account for banking!
+    ld      hl, $ffff & -uxn_memory
+    add     hl, bc
+    ld      b, h
+    ld      c, l
+    pop     hl
+
+    ld      [hl], b
+    inc     l
+    ld      [hl], c
+    inc     l
+    RST_PTR_L
+    jr      _JMP2k
+
+; STH2k a b -- a b
 _STH2k::
+    WST_HL_dec
+    ld      b, [hl]
+    dec     l
+    ld      c, [hl]
+    jp      _STH2.continue
+
+; LDZk addr8 -- addr8 value
 _LDZ2k::
+    WST_HL_dec
+    ld      b, HIGH(zero_page)
+    ld      c, [hl]
+    ld      a, [bc]
+    inc     l
+    ld      [hli], a
+    inc     c
+    ld      a, [bc]
+    ld      [hli], a
+    WST_PTR_L
+    ret
+
+; STZk value addr8 -- value addr8
 _STZ2k::
+    ; TODO: Same as _STZ2 without the final WST_PTR_L, any way to reuse?
+    WST_HL_dec
+.continue
+    ld      b, HIGH(zero_page)
+    ld      c, [hl]
+    inc     c
+    dec     l
+    ld      a, [hld]
+    ld      [bc], a
+    dec     c
+    ld      a, [hl]
+    ld      [bc], a
+    ret
+
+; LDR2k addr8 -- addr8 value
 _LDR2k::
+    WST_HL_dec
+    ld      c, [hl]
+    ; sign extension
+    ld      a, c
+    add     a       ; push sign into carry
+    sbc     a       ; turn into 0 or -1
+    ld      b, a    ; high byte
+    push    hl
+    PC_to_HL
+    add     hl, bc
+    ld      a, [hli]    ; TODO: Deal with SRAM banks
+    ld      b, [hl]
+    pop     hl
+    inc     l
+    ld      [hli], a
+    ld      [hl], b
+    inc     l
+    WST_PTR_L
+    ret
+
+; STR2k value addr8 -- value addr8
 _STR2k::
+    WST_HL_dec
+    ld      c, [hl]
+    dec     l
+    ld      e, [hl]
+    dec     l
+    ld      d, [hl]
+    jp      _STR2.continue
+
+; LDA2k addr16 -- addr16 value
 _LDA2k::
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    ld      l, a
+    inc     a
+    inc     a
+    ldh     [wst_ptr], a
+.continue
+    dec     l
+    dec     l
+    ld      b, [hl]
+    inc     l
+    ld      c, [hl]
+    inc     l
+    BC_to_UXN_Banked
+    ld      a, [bc]
+    ld      [hli], a
+    inc     bc      ; TODO: Handle bank wrapping
+    ld      a, [bc]
+    ld      [hl], a
+    ret
+
+; STA2k value addr16 -- value addr16
 _STA2k::
+    WST_HL_dec
+    ld      c, [hl]
+    dec     l
+    ld      b, [hl]
+    dec     l
+    ld      e, [hl]
+    dec     l
+    ld      d, [hl]
+.continue
+    BC_to_UXN_Banked
+    ld      a, d
+    ld      [bc], a
+    inc     bc      ; TODO: Handle bank wrapping
+    ld      a, e
+    ld      [bc], a
+    ret
+
 _DEI2k::
-_DEO2k::
-_ADD2k::
-_SUB2k::
-_MUL2k::
-_DIV2k::
-_AND2k::
-_ORA2k::
-_EOR2k::
-_SFT2k::
-
-_LITr::
-_INCkr::
-_POPkr::
-_DUPkr::
-_NIPkr::
-_SWPkr::
-_OVRkr::
-_ROTkr::
-_EQUkr::
-_NEQkr::
-_GTHkr::
-_LTHkr::
-_JMPkr::
-_JCNkr::
-_JSRkr::
-_STHkr::
-_LDZkr::
-_STZkr::
-_LDRkr::
-_STRkr::
-_LDAkr::
-_STAkr::
-_DEIkr::
-_DEOkr::
-_ADDkr::
-_SUBkr::
-_MULkr::
-_DIVkr::
-_ANDkr::
-_ORAkr::
-_EORkr::
-_SFTkr::
-
-_LIT2r::
-_INC2kr::
-_POP2kr::
-_DUP2kr::
-_NIP2kr::
-_SWP2kr::
-_OVR2kr::
-_ROT2kr::
-_EQU2kr::
-_NEQ2kr::
-_GTH2kr::
-_LTH2kr::
-_JMP2kr::
-_JCN2kr::
-_JSR2kr::
-_STH2kr::
-_LDZ2kr::
-_STZ2kr::
-_LDR2kr::
-_STR2kr::
-_LDA2kr::
-_STA2kr::
-_DEI2kr::
-_DEO2kr::
-_ADD2kr::
-_SUB2kr::
-_MUL2kr::
-_DIV2kr::
-_AND2kr::
-_ORA2kr::
-_EOR2kr::
-_SFT2kr::
     rst     Crash
+
+; DEO2k value device8 -- value device8
+_DEO2k::
+    WST_HL_dec
+    ld      d, [hl]
+    dec     l
+    ld      b, [hl]
+    dec     l
+    ld      c, [hl]
+    jp      _DEO2.continue
+
+; ADD2k a b -- a b c
+_ADD2k::
+    WMATH_2K_SETUP
+    push    hl
+    ld      h, d
+    ld      l, e
+    add     hl, bc
+    ld      a, h
+    ld      e, l
+    pop     hl
+    ld      [hli], a
+    ld      [hl], e
+    ret
+
+; SUB2k a b -- a b c
+_SUB2k::
+    WMATH_2K_SETUP
+    ld      a, e
+    sub     c
+    ld      e, a
+    ld      a, d
+    sbc     b
+    ld      [hli], a
+    ld      [hl], e
+    ret
+
+; MUL2k a b c d -- a b c d e f
+_MUL2k::
+    WMATH_2K_SETUP
+    push    hl
+
+    ; http://map.grauw.nl/articles/mult_div_shifts.php
+
+    ld      a, b
+    ld      b, 16
+.loop
+    add     hl, hl
+    sla     c
+    rla
+    jr      nc, .noAdd
+    add     hl,de
+.noAdd
+    dec     b
+    jr      nz, .loop
+    ld      b, h
+    ld      a, l
+
+    pop     hl
+    ld      [hl], b
+    inc     l
+    ld      [hl], a
+    ret
+
+; DIV2k a b c d -- a b c d e f
+_DIV2k::
+    WMATH_2K_SETUP
+    push    hl
+
+    ; http://www.devrs.com/gb/asmcode.php (U161616a v1.0 by Jeff Frohwein)
+    ld      hl, _MD16temp
+    ld      [hl], c
+    inc     l
+    ld      [hl], b
+    inc     l
+    ld      [hl], 17
+    ld      bc, 0
+.nextBit:
+    ld      l, LOW(_MD16count)
+    ld      a, e
+    rla
+    ld      e, a
+    ld      a, d
+    rla
+    ld      d, a
+    dec     [hl]
+    jr      z, .done
+    ld      a, c
+    rla
+    ld      c, a
+    ld      a, b
+    rla
+    ld      b, a
+    dec     l
+    dec     l
+    ld      a, c
+    sub     [hl]
+    ld      c, a
+    inc     l
+    ld      a, b
+    sbc     a, [hl]
+    ld      b, a
+    jr      nc, .noAdd
+
+    dec     hl
+    ld      a, c
+    add     a, [hl]
+    ld      c, a
+    inc     l
+    ld      a, b
+    adc     a, [hl]
+    ld      b, a
+.noAdd:
+    ccf
+    jr      .nextBit
+.done
+
+    pop     hl
+    ld      [hl], d
+    inc     l
+    ld      [hl], e
+    ret
+
+; AND2k a b -- a b c
+_AND2k::
+    WBIT_2K_SETUP
+    ld      a, [hli]
+    ld      b, [hl]
+    inc     l
+    and     [hl]
+    ld      c, a    ; result of high byte OP in C
+    inc     l
+    ld      a, b
+    and     [hl]    ; result of low byte OP in A
+    inc     l
+    ld      [hl], c
+    inc     l
+    ld      [hl], a
+    ret
+
+; ORA2k a b -- a b c
+_ORA2k::
+    WBIT_2K_SETUP
+    ld      a, [hli]
+    ld      b, [hl]
+    inc     l
+    or      [hl]
+    ld      c, a    ; result of high byte OP in C
+    inc     l
+    ld      a, b
+    or      [hl]    ; result of low byte OP in A
+    inc     l
+    ld      [hl], c
+    inc     l
+    ld      [hl], a
+    ret
+
+; EOR2k a b -- a b c
+_EOR2k::
+    WBIT_2K_SETUP
+    ld      a, [hli]
+    ld      b, [hl]
+    inc     l
+    xor     [hl]
+    ld      c, a    ; result of high byte OP in C
+    inc     l
+    ld      a, b
+    xor     [hl]    ; result of low byte OP in A
+    inc     l
+    ld      [hl], c
+    inc     l
+    ld      [hl], a
+    ret
+
+; SFT2k a shift8 -- a shift8 c
+_SFT2k::
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    inc     a
+    inc     a
+    ldh     [wst_ptr], a
+.continue
+    sub     5
+    ld      l, a
+
+    ld      b, [hl]
+    inc     l
+    ld      c, [hl]
+    inc     l
+    ld      d, [hl]
+    inc     l
+
+    ld      a, d
+    and     $0F     ; get right shift count
+    or      a
+    jr      z, .doneRightShift
+.rightShift
+    srl     b
+    rr      c
+    dec     a
+    jr      nz, .rightShift
+.doneRightShift
+    ld      a, d
+    and     $F0     ; get left shift count
+    swap    a
+    or      a
+    jr      z, .doneLeftShift
+.leftShift
+    sla     c
+    rl      b
+    dec     a
+    jr      nz, .leftShift
+.doneLeftShift
+    ld      [hl], b
+    inc     l
+    ld      [hl], c
+    ret
+
+; LITr -- a
+_LITr::
+    PC_to_B
+    inc     hl          ; increment PC, and store new value
+    ld      a, h
+    ldh     [pc], a
+    ld      a, l
+    ldh     [pc+1], a
+    RST_HL
+    ld      [hl], b     ; push onto wst
+    inc     l           ; inc stack ptr
+    RST_PTR_L
+    ret
+
+; INCkr a -- a b
+_INCkr::
+    RST_HL_dec
+    ld      a, [hli]
+    inc     a
+    ld      [hli], a
+    RST_PTR_L
+    ret
+
+; POPkr a -- a
+_POPkr::
+    ; TODO: Underflow error if stack if empty
+    ret
+
+; NIPkr a b -- a b
+_NIPkr::
+    ret
+
+; SWPkr a b -- a b b a
+_SWPkr::
+    RST_HL_dec
+    ld      a, [hld]
+    ld      b, [hl]
+    inc     l
+    inc     l
+    ld      [hli], a
+    ld      [hl], b
+    inc     l
+    RST_PTR_L
+    ret
+
+; ROTkr a b c -- a b c b c a
+_ROTkr::
+    RST_HL_dec
+    ld      b, [hl]
+    dec     l
+    ld      a, [hld]
+    ld      c, [hl]
+    inc     l
+    inc     l
+    inc     l
+    ld      [hli], a
+    ld      [hl], b
+    inc     l
+    ld      [hl], c
+    inc     l
+    RST_PTR_L
+    ret
+
+; DUPkr a -- a a a
+_DUPkr::
+    RST_HL_dec
+    ld      a, [hli]
+    ld      [hli], a
+    ld      [hli], a    ; TODO: Jump to _DUP's ld [hli], a to save bytes?
+    RST_PTR_L
+    ret
+
+; OVRkr a b -- a b a b a
+_OVRkr::
+    RST_HL_dec
+    ld      b, [hl]
+    dec     l
+    ld      a, [hli]
+    inc     l
+    ld      [hli], a
+    ld      [hl], b
+    inc     l
+    ld      [hli], a
+    RST_PTR_L
+    ret
+
+; EQUkr a b -- a b bool8
+_EQUkr::
+    RST_HL_dec
+    ld      a, [hld]
+    ld      b, [hl]
+    cp      b
+    ld      a, 0
+    jr      nz, .notEqual
+    inc     a
+.notEqual
+    inc     l
+    inc     l
+    ld      [hli], a
+    RST_PTR_L
+    ret
+
+; NEQkr a b -- a b bool8
+_NEQkr::
+    RST_HL_dec
+    ld      a, [hld]
+    ld      b, [hl]
+    cp      b
+    ld      a, 0
+    jr      z, .equal
+    inc     a
+.equal
+    inc     l
+    inc     l
+    ld      [hli], a
+    RST_PTR_L
+    ret
+
+; GTHkr a b -- a b bool8
+_GTHkr::
+    RST_HL_dec
+    ld      a, [hld]
+    ld      b, [hl]
+    cp      b
+    ld      a, 0
+    jr      nc, .notGreater
+    inc     a
+.notGreater
+    inc     l
+    inc     l
+    ld      [hli], a
+    RST_PTR_L
+    ret
+
+; LTHkr a b -- a b bool8
+_LTHkr::
+    RST_HL_dec
+    ld      a, [hld]
+    ld      b, [hl]
+    cp      b
+    ld      a, 0
+    jr      c, .notLesser
+    jr      z, .notLesser
+    inc     a
+.notLesser
+    inc     l
+    inc     l
+    ld      [hli], a
+    RST_PTR_L
+    ret
+
+; JMPkr addr -- addr
+_JMPkr::
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    dec     a
+    jp      _JMP.continue
+
+; JCNkr cond8 addr -- cond8 addr
+_JCNkr::
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    dec     a
+    dec     a
+    jp      _JCN.continue
+
+; JSRkr addr -- addr
+_JSRkr::
+    ldh     a, [pc]
+    ld      b, a
+    ldh     a, [pc+1]
+    ld      c, a
+
+    ; Offset back to UXN address, in case someone does some direct manipulation
+    ; TODO: Account for banking!
+    ld      hl, $ffff & -uxn_memory
+    add     hl, bc
+    ld      b, h
+    ld      c, l
+
+    WST_HL
+    ld      [hl], b
+    inc     l
+    ld      [hl], c
+    inc     l
+    WST_PTR_L
+    ; UXN return address now on RST, continue with normal JMPkr
+    jr      _JMPkr
+
+; STHkr a -- a
+; TODO: Check if removing macros opens up optimizations
+_STHkr::
+    RST_HL_dec
+    ld      b, [hl]
+    WST_HL_dec
+    ld      [hl], b
+    ret
+
+; LDZkr addr8 -- addr8 value
+_LDZkr::
+    RST_HL_dec
+    ld      b, HIGH(zero_page)
+    ld      c, [hl]
+    ld      a, [bc]
+    inc     l
+    ld      [hl], a
+    RST_PTR_L
+    ret
+
+; STZkr value addr8 -- value addr8
+_STZkr::
+    RST_HL_dec
+    jp      _STZk
+
+; LDRkr addr8 -- addr8 value
+_LDRkr::
+    RST_HL_dec ; TODO: Use pre-ptr-inc to allow jump to _LDRk.continue
+.continue
+    ld      c, [hl]
+    ; sign extension
+    ld      a, c
+    add     a       ; push sign into carry
+    sbc     a       ; turn into 0 or -1
+    ld      b, a    ; high byte
+    push    hl
+    PC_to_HL
+    add     hl, bc
+    ld      a, [hl]
+    pop     hl
+    inc     l
+    ld      [hli], a
+    RST_PTR_L
+    ret
+
+; STRkr value addr8 -- value addr8
+_STRkr::
+    RST_HL_dec
+    jp      _STRk.continue
+
+; LDAkr addr16 -- addr16 value
+; TODO: Use pre-ptr-inc to allow jump to _LDAk.continue
+_LDAkr::
+    RST_HL_dec
+    dec     l
+    ld      b, [hl]
+    inc     l
+    ld      c, [hl]
+    inc     l
+
+    BC_to_UXN_Banked
+
+    ld      a, [bc]
+    ld      [hli], a
+    RST_PTR_L
+    ret
+
+; STAkr value addr16 -- value addr16
+_STAkr::
+    RST_HL_dec
+    jp      _STAk.continue
+
+_DEIkr::
+    ret
+
+; DEOkr value device8 -- value device8
+_DEOkr::
+    RST_HL_dec
+    ld      d, [hl]
+    dec     l
+    jp      _DEO.continue
+
+; ADDkr a b -- a b c
+_ADDkr::
+    RST_HL_dec
+    ld      a, [hld]
+    ld      b, [hl]
+    add     b
+    inc     l
+    inc     l
+    ld      [hli], a
+    RST_PTR_L
+    ret
+
+; SUBkr a b -- a b c
+_SUBkr::
+    RST_HL_dec
+    dec     l
+    ld      a, [hli]
+    sub     [hl]
+    inc     l
+    ld      [hli], a
+    RST_PTR_L
+    ret
+
+; MULkr a b -- a b c
+_MULkr::
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    inc     a
+    ldh     [rst_ptr], a
+    dec     a
+    dec     a
+    jp      _MULk.continue
+
+; DIVkr a b -- a b c
+_DIVkr::
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    inc     a
+    ldh     [rst_ptr], a
+    dec     a
+    dec     a
+    jp      _DIVk.continue
+
+; ANDkr a b -- a b c
+_ANDkr::
+    RST_HL_dec
+    ld      a, [hld]
+    and     [hl]
+    inc     l
+    inc     l
+    ld      [hli], a
+    RST_PTR_L
+    ret
+
+; ORAkr a b -- a b c
+_ORAkr::
+    RST_HL_dec
+    ld      a, [hld]
+    or      [hl]
+    inc     l
+    inc     l
+    ld      [hli], a
+    RST_PTR_L
+    ret
+
+; EORkr a b -- a b c
+_EORkr::
+    RST_HL_dec
+    ld      a, [hld]
+    xor     [hl]
+    inc     l
+    inc     l
+    ld      [hli], a
+    RST_PTR_L
+    ret
+
+; SFTkr a shift8 -- a shift8 c
+_SFTkr::
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    inc     a
+    ldh     [rst_ptr], a
+    jp      _SFTk.continue
+
+; LIT2r -- a
+_LIT2r::
+    PC_to_HL
+    ld      b, [hl]
+    inc     hl      ; must be a 16bit inc
+    ld      c, [hl]
+    inc     hl      ; must be a 16bit inc
+    HL_to_PC
+    RST_HL
+    ld      [hl], b
+    inc     l
+    ld      [hl], c
+    inc     l
+    RST_PTR_L
+    ret
+
+; INC2kr a -- a b
+_INC2kr::
+    RST_HL_dec
+    ld      c, [hl]
+    dec     l
+    ld      b, [hl]
+    inc     bc      ; inc value
+    inc     l       ; seek to new wst position
+    inc     l
+    ld      [hl], b ; store new value
+    inc     l
+    ld      [hl], c
+    inc     l
+    RST_PTR_L
+    ret
+
+; POP2kr a b -- a b
+_POP2kr::
+    ; TODO: Underflow error if rst if empty
+    ret
+
+; NIP2kr a b -- a b b
+_NIP2kr::
+    jp      _DUP2r
+
+; SWP2kr a b c d -- a b c d c d a b
+_SWP2kr::
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    add     4
+    ldh     [rst_ptr], a
+    jp      _SWP2k.continue
+
+; ROT2kr a b c d e f -- a b c d e f c d e f a b
+; TODO: Try to speed up this register-pressure traversal
+_ROT2kr::
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    add     6
+    ldh     [rst_ptr], a
+    jp      _ROT2k.continue
+
+; DUP2kr a b -- a b a b a b
+_DUP2kr::
+    RST_HL_dec
+    ld      a, [hld]
+    ld      b, [hl]
+    inc     l
+    inc     l
+    ld      [hl], b
+    inc     l
+    ld      [hli], a
+    ld      [hl], b
+    inc     l
+    ld      [hli], a
+    RST_PTR_L
+    ret
+
+; OVR2kr a b c d -- a b c d a b c d a b
+_OVR2kr::
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    add     6
+    ldh     [rst_ptr], a
+    jp      _OVR2k.continue
+
+; EQU2kr a b c d -- a b c d bool8
+_EQU2kr::
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    inc     a
+    ldh     [rst_ptr], a
+    jp      _EQU2k.continue
+
+; NEQ2kr a b c d -- a b c d bool8
+_NEQ2kr::
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    inc     a
+    ldh     [rst_ptr], a
+    jp      _NEQ2k.continue
+
+; GTH2kr a b c d -- a b c d bool8
+_GTH2kr::
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    inc     a
+    ldh     [rst_ptr], a
+    jp      _GTH2k.continue
+
+; LTH2kr a b d c -- a b d c bool8
+_LTH2kr::
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    inc     a
+    ldh     [rst_ptr], a
+    jp      _LTH2k.continue
+
+; JMP2kr addr -- addr
+_JMP2kr::
+    RST_HL_dec
+    ld      c, [hl]
+    dec     l
+    jp      _JMP2.continue
+
+; JCN2kr cond addr -- cond addr
+_JCN2kr::
+    RST_HL_dec
+    dec     l
+    dec     l
+    ld      c, [hl]
+    jp      _JCN2.continue
+
+; JSR2kr addr -- addr
+_JSR2kr::
+    ; TODO: Find a way to reuse _JSR2?, which is identical except for where it jumps at the end
+    WST_HL
+    ldh     a, [pc]
+    ld      b, a
+    ldh     a, [pc+1]
+    ld      c, a
+
+    push    hl
+    ; Offset back to UXN address, in case someone does some direct manipulation
+    ; TODO: Account for banking!
+    ld      hl, $ffff & -uxn_memory
+    add     hl, bc
+    ld      b, h
+    ld      c, l
+    pop     hl
+
+    ld      [hl], b
+    inc     l
+    ld      [hl], c
+    inc     l
+    WST_PTR_L
+    jr      _JMP2kr
+
+; STH2kr a b -- a b
+_STH2kr::
+    RST_HL_dec
+    ld      b, [hl]
+    dec     l
+    ld      c, [hl]
+    jp      _STH2.continue
+
+; LDZkr addr8 -- addr8 value
+_LDZ2kr::
+    RST_HL_dec
+    ld      b, HIGH(zero_page)
+    ld      c, [hl]
+    ld      a, [bc]
+    inc     l
+    ld      [hli], a
+    inc     c
+    ld      a, [bc]
+    ld      [hli], a
+    RST_PTR_L
+    ret
+
+; STZkr value addr8 -- value addr8
+_STZ2kr::
+    RST_HL_dec
+    jp      _STZ2k.continue
+
+; LDR2kr addr8 -- addr8 value
+_LDR2kr::
+    RST_HL_dec
+    ld      c, [hl]
+    ; sign extension
+    ld      a, c
+    add     a       ; push sign into carry
+    sbc     a       ; turn into 0 or -1
+    ld      b, a    ; high byte
+    push    hl
+    PC_to_HL
+    add     hl, bc
+    ld      a, [hli]    ; TODO: Deal with SRAM banks
+    ld      b, [hl]
+    pop     hl
+    inc     l
+    ld      [hli], a
+    ld      [hl], b
+    inc     l
+    RST_PTR_L
+    ret
+
+; STR2kr value addr8 -- value addr8
+_STR2kr::
+    RST_HL_dec
+    ld      c, [hl]
+    dec     l
+    ld      e, [hl]
+    dec     l
+    ld      d, [hl]
+    jp      _STR2.continue
+
+; LDA2kr addr16 -- addr16 value
+_LDA2kr::
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    ld      l, a
+    inc     a
+    inc     a
+    ldh     [rst_ptr], a
+    jp      _LDA2k.continue
+
+; STA2kr value addr16 -- value addr16
+_STA2kr::
+    RST_HL_dec
+    ; TODO: Reduce duplication before jump?
+    ld      c, [hl]
+    dec     l
+    ld      b, [hl]
+    dec     l
+    ld      e, [hl]
+    dec     l
+    ld      d, [hl]
+    jp      _STA2k.continue
+
+_DEI2kr::
+    rst     Crash
+
+; DEO2kr value device8 -- value device8
+_DEO2kr::
+    RST_HL_dec
+    ld      d, [hl]
+    dec     l
+    ld      b, [hl]
+    dec     l
+    ld      c, [hl]
+    jp      _DEO2.continue
+
+; ADD2kr a b -- a b c
+_ADD2kr::
+    RMATH_2K_SETUP
+    jp      _ADD2k.continue
+
+; SUB2kr a b -- a b c
+_SUB2kr::
+    RMATH_2K_SETUP
+    jp      _SUB2k.continue
+
+; MUL2kr a b c d -- a b c d e f
+_MUL2kr::
+    RMATH_2K_SETUP
+    jp      _MUL2k.continue
+
+; DIV2kr a b c d -- a b c d e f
+_DIV2kr::
+    RMATH_2K_SETUP
+    jp      _DIV2k.continue
+
+; AND2kr a b -- a b c
+_AND2kr::
+    RBIT_2K_SETUP
+    jp      _AND2k.continue
+
+; ORA2kr a b -- a b c
+_ORA2kr::
+    RBIT_2K_SETUP
+    jp      _ORA2k.continue
+
+; EOR2kr a b -- a b c
+_EOR2kr::
+    RBIT_2K_SETUP
+    jp      _EOR2k.continue
+
+; SFT2kr a shift8 -- a shift8 c
+_SFT2kr::
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    inc     a
+    inc     a
+    ldh     [rst_ptr], a
+    jp      _SFT2k.continue
+
