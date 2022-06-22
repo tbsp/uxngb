@@ -34,8 +34,8 @@ device_defaults::
     ds 16, 0
     ; screen (0x20)
     dw 0        ; vector
-    dw 160      ; width
-    dw 144      ; height
+    db HIGH(160), LOW(160)      ; width (big endian)
+    db HIGH(144), LOW(144)      ; height (big endian)
     db 0        ; auto
     db 0        ; pad
     dw 0        ; x
@@ -214,15 +214,13 @@ dev_screen_deo::
     srl     a           ; x/8
     srl     a
     srl     a
-    swap    a           ; x/8*16
-    add     c
-    ld      c, a
-    adc     b
-    sub     c
-    ld      b, a        ; bc=$8000+y/8*320+x*16
-
-    ld      h, b
-    ld      l, c
+    swap    a           ; x/8*16, overflow bit in lsb
+    ld      l, a
+    ld      h, 0
+    srl     l           ; move possible overflow bit to carry
+    rl      h           ; move possible overflow bit to H
+    sla     l           ; restore L minus bit
+    add     hl, bc
 
     ld      de, tile_buffer
     ldh     a, [data_byte]
@@ -367,8 +365,9 @@ dev_nil::
 SECTION "Y*320 VRAM Table", ROM0, ALIGN[6]
 ; y*320+$8000 table - used to calculate tile VRAM addresses for 18 possible input values
 Y_TIMES_320_VRAM:
-dw     0+$8000,  1*320+$8000,  2*320+$8000,  3*320+$8000,  4*320+$8000,  5*320+$8000,  6*320+$8000,  7*320+$8000,  8*320+$8000
-dw 9*320+$8000, 10*320+$8000, 11*320+$8000, 12*320+$8000, 13*320+$8000, 14*320+$8000, 15*320+$8000, 16*320+$8000, 17*320+$8000
+dw 0+$8000, 1*320+$8000, 2*320+$8000, 3*320+$8000, 4*320+$8000, 5*320+$8000, 6*320+$8000, 7*320+$8000, 8*320+$8000, 9*320+$8000, 10*320+$8000, 11*320+$8000
+; Shift in offset pattern for tiles below the split
+dw 13*320+$7FC0, 14*320+$7FC0, 15*320+$7FC0, 16*320+$7FC0, 17*320+$7FC0, 18*320+$7FC0
 
 SECTION "Varvara Blending", ROM0, ALIGN[8] ; TODO: May not need align[8]
 
