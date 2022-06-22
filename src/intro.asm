@@ -2,14 +2,15 @@ DEF MODE_CLI        EQU $00 ; mode with console input/output devices
 DEF MODE_VARVARA    EQU $01 ; mode with varvara compliant devices (very slow Screen due to lack of bitmap graphical hardware support)
 DEF MODE_TILED      EQU $02 ; mode with tile-based devices for improved performance on tile-based hardware
 
-DEF MODE            EQU MODE_CLI
+DEF MODE            EQU MODE_VARVARA
 
 ; Include different files based on active mode
 IF MODE == MODE_CLI
     include "emu_cli/cli_devices.asm"
     include "emu_cli/cli_functions.asm"
-ELIF MODE == MODE_VARVAR
-
+ELIF MODE == MODE_VARVARA
+    include "emu_varvara/varvara_devices.asm"
+    include "emu_varvara/varvara_functions.asm"
 ELSE
 
 ENDC
@@ -27,11 +28,11 @@ wst_ptr::   ds 1    ; should exist as the second last byte in the wst (programs 
 rst_ptr::   ds 1    ; should exist as the second last byte in the rst (programs that depend on that will fail right now)
 
 ; The default stacks "live" at $10000-$100ff and $10100-$101ff in UXN memory
-SECTION "UXN Stacks", WRAM0, ALIGN[0]
+SECTION "UXN Stacks", WRAM0, ALIGN[8]
 w_st::      ds 256
 r_st::      ds 256
 
-SECTION "UXN Devices", WRAM0, ALIGN[0]
+SECTION "UXN Devices", WRAM0, ALIGN[8]
 devices::   ds 16*16
 
 SECTION "UXN Memory", SRAM[$A000]
@@ -56,14 +57,18 @@ Intro::
     ld      a, $0A
     ld      [$00], a    ; enable SRAM access
 
-    ; TODO: initialize device memory, likely copy from LUT (screen size, wst/rst, etc)
+    ; Initialize device memory
+    ld      de, device_defaults
+    ld      hl, devices
+    ld      c, 0
+    rst     MemcpySmall
 
     ; uxn_boot
     ; initialize all 8 banks of RAM with 0
     ld      d, 8
     .zeroRAM
         xor     a
-        ld      hl, $A000
+        ld      hl, uxn_memory
         ld      bc, $1FFF
         push    de
         rst     Memset
@@ -179,5 +184,6 @@ SECTION "UXN ROM", ROMX, ALIGN[$0100]
 staticROM:
     ;incbin "res/tests.rom"
     ;incbin "res/console.rom"
-    incbin "res/tests_extended.rom"
+    ;incbin "res/tests_extended.rom"
+    incbin "res/hello-screen.rom"
 .end

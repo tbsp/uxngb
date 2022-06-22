@@ -52,7 +52,7 @@ Reset::
     jr      nz, .copyOAMDMA
 
     ; Set Palettes
-    ld      a, %11100100 
+    ld      a, %00011011
     ldh     [rBGP], a
     ldh     [rOBP0], a
     ldh     [rOBP1], a
@@ -81,7 +81,7 @@ Reset::
 
     ; Select wanted interrupts here
     ; You can also enable them later if you want
-    ld      a, IEF_VBLANK
+    ld      a, IEF_VBLANK | IEF_LCDC
     ldh     [rIE], a
     xor     a
     ei      ; Only takes effect after the following instruction
@@ -91,7 +91,7 @@ Reset::
     ; xor a
     ldh     [hSCY], a
     ldh     [hSCX], a
-    ld      a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8000
+    ld      a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9800
     ldh     [hLCDC], a
     ; And turn the LCD on!
     ldh     [rLCDC], a

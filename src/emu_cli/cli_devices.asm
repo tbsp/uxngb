@@ -18,6 +18,10 @@ device_handlers::
     dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
     dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
 
+SECTION "UXNCLI Device Defaults", ROM0
+device_defaults::
+    ds 256, 0
+
 SECTION "UXNCLI Devices", ROM0
 
 dev_system_dei::

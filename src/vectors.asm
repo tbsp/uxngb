@@ -116,8 +116,12 @@ SECTION "Handlers", ROM0[$40]
     jp      VBlankHandler
     ds      $48 - @
 
-; STAT handler
-    rst     $38
+; STAT handler (only used by varvara, but included here for performance reasons)
+    push	af
+    ld	    a, LCDCF_ON | LCDCF_BG8800 | LCDCF_BG9800 | LCDCF_BGON
+    ldh	    [rLCDC], a
+    pop	    af
+    reti
     ds      $50 - @
 
 ; Timer handler

@@ -435,7 +435,39 @@ _STA::
     ld      [bc], a
     ret
 
+; DEI device8 -- value
 _DEI::
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+.continue
+    ld      l, a
+    dec     l
+    ld      d, [hl]
+
+    ; DEVPEEK8
+    push    hl
+    ld      hl, devices
+    ld      a, d
+    add     l
+    ld      l, a
+
+    ld      a, [hli]
+    pop     hl
+    ld      [hl], a
+
+    ; get handler address
+    ld      a, d
+    and     $F0
+    srl     a
+    ;add     0       ; DEI handler offset
+    ld      hl, device_handlers
+    add     l
+    ld      l, a    ; LUT uses ALIGN[7], so no need to worry about carry
+    ld      a, [hli]
+    ld      h, [hl]
+    ld      l, a
+    rst     CallHL
+
     ret
 
 ; DEO value device8 --
@@ -1010,8 +1042,44 @@ _STA2::
     ld      [bc], a
     ret
 
+; DEI2 device8 -- value
 _DEI2::
-    rst     Crash
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    ld      l, a
+    inc     a
+    ldh     [wst_ptr], a
+.continue
+    dec     l
+    ld      d, [hl]
+
+    ; DEVPEEK16
+    push    hl
+    ld      hl, devices
+    ld      a, d
+    add     l
+    ld      l, a
+
+    ld      a, [hli]
+    ld      b, [hl]
+    pop     hl
+    ld      [hli], a
+    ld      [hl], b
+
+    ; get handler address
+    ld      a, d
+    and     $F0
+    srl     a
+    add     2       ; DEI2 handler offset
+    ld      hl, device_handlers
+    add     l
+    ld      l, a    ; LUT uses ALIGN[7], so no need to worry about carry
+    ld      a, [hli]
+    ld      h, [hl]
+    ld      l, a
+    rst     CallHL
+
+    ret
 
 
 ; DEO value device8 --
@@ -1019,9 +1087,9 @@ _DEO2::
     WST_HL_dec
     ld      d, [hl]
     dec     l
-    ld      b, [hl]
-    dec     l
     ld      c, [hl]
+    dec     l
+    ld      b, [hl]
     WST_PTR_L
 .continue
     ; DEVPOKE16
@@ -1511,8 +1579,11 @@ _STAr::
     RST_PTR_L
     jp      _STA.continue
 
+; DEIr device8 -- value
 _DEIr::
-    ret
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    jp      _DEI.continue
 
 ; DEOr val device8 --
 _DEOr::
@@ -1885,8 +1956,14 @@ _STA2r::
     RST_PTR_L
     jp      _STA2
 
+; DEI2r device8 -- value
 _DEI2r::
-    rst     Crash
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    ld      l, a
+    inc     a
+    ldh     [rst_ptr], a
+    jp      _DEI2.continue
 
 ; DEOr val device8 --
 _DEO2r::
@@ -2259,8 +2336,14 @@ _STAk::
     ld      [bc], a
     ret
 
+; DEIk device8 -- device8 value
 _DEIk::
-    ret
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    inc     a
+    ldh     [wst_ptr], a
+    sub     2
+    jp      _DEI.continue
 
 ; DEOk value device8 -- value device8
 _DEOk::
@@ -3364,8 +3447,14 @@ _STAkr::
     RST_HL_dec
     jp      _STAk.continue
 
+; DEIkr device8 -- device8 value
 _DEIkr::
-    ret
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    inc     a
+    ldh     [rst_ptr], a
+    sub     2
+    jp      _DEI.continue
 
 ; DEOkr value device8 -- value device8
 _DEOkr::
