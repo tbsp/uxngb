@@ -10,7 +10,7 @@ PADVALUE := 0xFF
 VERSION := 0
 
 # 4-ASCII letter game ID
-GAMEID := tbsp
+GAMEID := _uxn
 
 # Game title, up to 11 ASCII chars
 TITLE := uxngb
@@ -31,11 +31,11 @@ MBC := 0x1A
 # Size of the on-board SRAM; MBC type should indicate the presence of RAM
 # See https://gbdev.io/pandocs/#_0149-ram-size or consult any copy of Pan Docs
 # Set this to 0 when using MBC2's built-in SRAM
-SRAMSIZE := 0x05
+SRAMSIZE := 0x02
 
 # ROM name
 ROMNAME := uxngb
-ROMEXT  := gb
+ROMEXT  := gbc
 
 
 # Compilation parameters, uncomment to apply, comment to cancel
@@ -49,7 +49,7 @@ ASFLAGS += -h
 # ASFLAGS += -E
 
 # Game Boy Color compatible
-# FIXFLAGS += -c
+FIXFLAGS += -c
 # Game Boy Color required
 # FIXFLAGS += -C
 

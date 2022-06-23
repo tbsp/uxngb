@@ -39,9 +39,6 @@ Reset::
 
     ld      sp, wStackBottom
 
-    ld      a, BANK(OAMDMA)
-    ; No need to write bank number to HRAM, interrupts aren't active
-    ;ld      [rROMB0], a
     ld      hl, OAMDMA
     lb      bc, OAMDMA.end - OAMDMA, LOW(hOAMDMA)
 .copyOAMDMA
@@ -89,12 +86,6 @@ Reset::
     dec     a ; ld a, $FF
     ldh     [hHeldKeys], a
     ldh     [hPriorKeys], a
-
-    ; Load the correct ROM bank for later
-    ; Important to do it before enabling interrupts
-    ld      a, BANK(Intro)
-    ldh     [hCurROMBank], a
-    ;ld      [rROMB0], a
 
     ; Select wanted interrupts here
     ; You can also enable them later if you want
@@ -144,12 +135,6 @@ SECTION "Global vars", HRAM
 
 ; 0 if CGB (including DMG mode and GBA), non-zero for other models
 hConsoleType:: db
-
-; Copy of the currently-loaded ROM bank, so the handlers can restore it
-; Make sure to always write to it before writing to ROMB0
-; (Mind that if using ROMB1, you will run into problems)
-hCurROMBank:: db
-
 
 SECTION "OAM DMA", HRAM
 

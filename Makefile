@@ -48,9 +48,9 @@ ROM = $(BINDIR)/$(ROMNAME).$(ROMEXT)
 # Argument constants
 INCDIRS  = $(SRCDIR)/ $(SRCDIR)/include/
 WARNINGS = all extra
-ASFLAGS  = -p $(PADVALUE) $(addprefix -i,$(INCDIRS)) $(addprefix -W,$(WARNINGS))
-LDFLAGS  = -p $(PADVALUE)
-FIXFLAGS = -p $(PADVALUE) -v -i "$(GAMEID)" -k "$(LICENSEE)" -l $(OLDLIC) -m $(MBC) -n $(VERSION) -r $(SRAMSIZE) -t $(TITLE)
+ASFLAGS  = $(addprefix -i,$(INCDIRS)) $(addprefix -W,$(WARNINGS))
+LDFLAGS  = -p $(PADVALUE) --nopad
+FIXFLAGS = -v -i "$(GAMEID)" -k "$(LICENSEE)" -l $(OLDLIC) -m $(MBC) -n $(VERSION) -r $(SRAMSIZE) -t $(TITLE)
 
 # The list of "root" ASM files that RGBASM will be invoked on
 SRCS = $(wildcard $(SRCDIR)/*.asm)
@@ -60,14 +60,17 @@ INCDIRS  = $(SRCDIR)/ $(SRCDIR)/include/
 # Use this to override the above
 include project.mk
 
+# The list of assembled UXN roms which will be created
+UXNROMS = $(patsubst $(SRCDIR)/roms/%.rom,$(BINDIR)/$(ROMNAME)_%.$(ROMEXT),$(wildcard $(SRCDIR)/roms/*.rom))
+
 ################################################
 #                                              #
 #                    TARGETS                   #
 #                                              #
 ################################################
 
-# `all` (Default target): build the ROM
-all: $(ROM)
+# `all` (Default target): build the ROM and all assembled ROMs
+all: $(ROM) $(UXNROMS)
 .PHONY: all
 
 # `clean`: Clean temp and bin files
@@ -166,12 +169,12 @@ $(RESDIR)/%.pb8.size: $(RESDIR)/%
 #                                             #
 ###############################################
 
-# How to build a ROM
-$(BINDIR)/%.$(ROMEXT) $(BINDIR)/%.sym $(BINDIR)/%.map: $(patsubst $(SRCDIR)/%.asm,$(OBJDIR)/%.o,$(SRCS))
+# How to build the ROM (explicitly just the main ROMNAME, so we can also have the appended UXN roms use the same ROMEXT)
+$(BINDIR)/$(ROMNAME).$(ROMEXT) $(BINDIR)/$(ROMNAME).sym $(BINDIR)/$(ROMNAME).map: $(patsubst $(SRCDIR)/%.asm,$(OBJDIR)/%.o,$(SRCS))
 	@$(MKDIR_P) $(@D)
 	$(RGBASM) $(ASFLAGS) -o $(OBJDIR)/build_date.o $(SRCDIR)/res/build_date.asm
-	$(RGBLINK) $(LDFLAGS) -m $(BINDIR)/$*.map -n $(BINDIR)/$*.sym -o $(BINDIR)/$*.$(ROMEXT) $^ $(OBJDIR)/build_date.o \
-	&& $(RGBFIX) -v $(FIXFLAGS) $(BINDIR)/$*.$(ROMEXT)
+	$(RGBLINK) $(LDFLAGS) -m $(BINDIR)/$(ROMNAME).map -n $(BINDIR)/$(ROMNAME).sym -o $(BINDIR)/$(ROMNAME).$(ROMEXT) $^ $(OBJDIR)/build_date.o \
+	&& $(RGBFIX) -v $(FIXFLAGS) $(BINDIR)/$(ROMNAME).$(ROMEXT)
 
 # `.mk` files are auto-generated dependency lists of the "root" ASM files, to save a lot of hassle.
 # Also add all obj dependencies to the dep file too, so Make knows to remake it
@@ -180,6 +183,12 @@ $(BINDIR)/%.$(ROMEXT) $(BINDIR)/%.sym $(BINDIR)/%.map: $(patsubst $(SRCDIR)/%.as
 $(OBJDIR)/%.o $(DEPDIR)/%.mk: $(SRCDIR)/%.asm
 	@$(MKDIR_P) $(patsubst %/,%,$(dir $(OBJDIR)/$* $(DEPDIR)/$*))
 	$(RGBASM) $(ASFLAGS) -M $(DEPDIR)/$*.mk -MG -MP -MQ $(OBJDIR)/$*.o -MQ $(DEPDIR)/$*.mk -o $(OBJDIR)/$*.o $<
+
+# How to build a ROM with an appended UXN ROM
+$(BINDIR)/$(ROMNAME)_%.$(ROMEXT): $(BINDIR)/$(ROMNAME).$(ROMEXT) $(SRCDIR)/roms/%.rom
+	@$(MKDIR_P) $(@D)
+	cat $(BINDIR)/$(ROMNAME).$(ROMEXT) $(SRCDIR)/roms/$*.rom > $(BINDIR)/$(ROMNAME)_$*.$(ROMEXT)
+	$(RGBFIX) -v -p $(PADVALUE) -v -i "$(GAMEID)" -k "$(LICENSEE)" -l $(OLDLIC) -m $(MBC) -n $(VERSION) -r $(SRAMSIZE) -t $* $(BINDIR)/$(ROMNAME)_$*.$(ROMEXT)
 
 ifneq ($(MAKECMDGOALS),clean)
 -include $(patsubst $(SRCDIR)/%.asm,$(DEPDIR)/%.mk,$(SRCS))

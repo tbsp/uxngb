@@ -17,7 +17,7 @@ ENDC
 
 DEF PageProgram     EQU $0100
 
-SECTION "Font Tiles", ROMX
+SECTION "Font Tiles", ROM0
 FontTiles:
     incbin "res/comic8x8_linear.2bpp"
 .end
@@ -44,7 +44,7 @@ SECTION "Console WRAM", WRAM0
 cursor_addr::   ds 2
 wPendingPalettes::  ds 16   ; one full BG and OBJ palette for CGB
 
-SECTION "Intro", ROMX
+SECTION "Intro", ROM0
 
 Intro::
     ; call mode-specific initialization
@@ -176,10 +176,10 @@ instr_jump_table:
     dw _LDZ2kr, _STZ2kr, _LDR2kr, _STR2kr, _LDA2kr, _STA2kr, _DEI2kr, _DEO2kr, _ADD2kr, _SUB2kr, _MUL2kr, _DIV2kr, _AND2kr, _ORA2kr, _EOR2kr, _SFT2kr
 
 ; Single byte so the output ROM runs right up to this point
-;SECTION "End Pad", ROM0[$3FFF]
-;    db $FF
+SECTION "End Pad", ROM0[$3FFF]
+    db $FF
 
 ; Attachment point for appended UXN ROM
 SECTION "UXN ROM", ROMX[$4000]
 staticROM:
-    incbin "roms/hello-pong.rom"
+    ;incbin "roms/snake_gb.rom"
