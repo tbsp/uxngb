@@ -101,11 +101,10 @@ CallDE::
     rst 	Crash
 
 SECTION "Rst $38", ROM0[$38]
-
-; Perform a soft-crash. Prints debug info on-screen
+; Loop forever on a crash
 Crash::
     di 		; Doing this as soon as possible to avoid interrupts messing up
-    jp 		HandleCrash
+:   jr      :-
 
 SECTION "Handlers", ROM0[$40]
 
@@ -117,6 +116,8 @@ SECTION "Handlers", ROM0[$40]
     ds      $48 - @
 
 ; STAT handler (only used by varvara, but included here for performance reasons)
+; Note: Occasionally we hit inaccessible VRAM issues on line 96 because of this...
+;  We might have to assume only one safe write per STAT check
     push	af
     ld	    a, LCDCF_ON | LCDCF_BG8800 | LCDCF_BG9800 | LCDCF_BGON
     ldh	    [rLCDC], a
@@ -159,6 +160,35 @@ VBlankHandler:
     xor     a
     ldh     [hOAMHigh], a
 .noOAMTransfer
+
+    ldh     a, [hPalettePending]
+    or      a
+    jr      z, .noPalettePending
+    xor     a
+    ldh     [hPalettePending], a
+
+    ; Apply the pending palettes
+    ld      hl, wPendingPalettes
+    ld      a, BCPSF_AUTOINC
+    ldh     [rBCPS], a
+    ld      b, 8
+.bgPal
+    ld      a, [hli]
+    ldh     [rBCPD], a
+    dec     b
+    jr      nz, .bgPal
+
+    ld      hl, wPendingPalettes
+    ld      a, OCPSF_AUTOINC
+    ldh     [rOCPS], a
+    ld      b, 8
+.objPal
+    ld      a, [hli]
+    ldh     [rOCPD], a
+    dec     b
+    jr      nz, .objPal
+
+.noPalettePending
 
     ; Put all operations that cannot be interrupted above this line
     ; For example, OAM DMA (can't jump to ROM in the middle of it),
@@ -223,6 +253,38 @@ ENDR
     ld      a, b
     ldh     [hHeldKeys], a
 
+
+    ; TODO: Find a way to cache the spare bit without another register so we can avoid push/pop
+    push    hl
+    ; Inject UXN button byte into device memory
+    ; Note: Done here instead of in the controller vector because programs might just read the
+    ;  state elsewhere (such as the screen vector).
+
+    ; Change high nibble GB order DULR to UXN order of RLDU
+    ; TODO: There has to be a faster way to do this!
+    ld      b, a    ; cache original byte
+    swap    a
+    srl     a       ; get R bit
+    rl      c       ; push R bit
+    srl     a       ; get L bit
+    rl      c       ; push L bit
+    srl     a       ; get U bit
+    rl      h       ; cache U bit
+    srl     a       ; get D bit
+    rl      c       ; push D bit
+    srl     h       ; recover U bit
+    rl      c       ; push U bit
+    swap    c
+    ld      a, c
+    and     $f0     ; only keep dpad bits
+    ld      c, a
+    ld      a, b
+    and     $0f     ; only keep button bits
+    or      c       ; merge dpad+buttons
+    pop     hl
+
+    ld      [devices + $82], a
+
     pop     bc
 
     pop     af ; Pop off return address as well to exit infinite loop
@@ -258,6 +320,9 @@ hSCX:: db
 hBGP:: db
 hOBP0:: db
 hOBP1:: db
+
+; Indicate if a UXN palette change is pending
+hPalettePending:: db
 
 ; Keys that are currently being held, and that became held just this frame, respectively.
 ; Each bit represents a button, with that bit set == button pressed

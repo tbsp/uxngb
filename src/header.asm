@@ -41,7 +41,7 @@ Reset::
 
     ld      a, BANK(OAMDMA)
     ; No need to write bank number to HRAM, interrupts aren't active
-    ld      [rROMB0], a
+    ;ld      [rROMB0], a
     ld      hl, OAMDMA
     lb      bc, OAMDMA.end - OAMDMA, LOW(hOAMDMA)
 .copyOAMDMA
@@ -51,11 +51,26 @@ Reset::
     dec     b
     jr      nz, .copyOAMDMA
 
+    ldh     a, [hConsoleType]
+    or      a
+    jr      z, .cgb
+
     ; Set Palettes
     ld      a, %00011011
     ldh     [rBGP], a
     ldh     [rOBP0], a
     ldh     [rOBP1], a
+
+    jr      .doneConsoleCheck
+.cgb
+    ; Enable double-speed mode
+    ; Note: hello-pong gets a stray missing tile in the background when double-speed mode is enabled
+    ;  -> Without double speed mode there's a single missing line instead (also seen in BGB), but only in CGB mode
+    ld      a, KEY1F_PREPARE
+    ldh     [rKEY1], a
+    stop
+
+.doneConsoleCheck
 
     ; You will also need to reset your handlers' variables below
     ; I recommend reading through, understanding, and customizing this file
@@ -70,6 +85,7 @@ Reset::
     ldh     [hVBlankFlag], a
     ldh     [hOAMHigh], a
     ldh     [hCanSoftReset], a
+    ldh     [hPalettePending], a
     dec     a ; ld a, $FF
     ldh     [hHeldKeys], a
     ldh     [hPriorKeys], a
@@ -78,7 +94,7 @@ Reset::
     ; Important to do it before enabling interrupts
     ld      a, BANK(Intro)
     ldh     [hCurROMBank], a
-    ld      [rROMB0], a
+    ;ld      [rROMB0], a
 
     ; Select wanted interrupts here
     ; You can also enable them later if you want
@@ -110,7 +126,7 @@ Reset::
     ; `Intro`'s bank has already been loaded earlier
     jp      Intro
 
-SECTION "OAM DMA routine", ROMX
+SECTION "OAM DMA routine", ROM0
 
 ; OAM DMA prevents access to most memory, but never HRAM.
 ; This routine starts an OAM DMA transfer, then waits for it to complete.

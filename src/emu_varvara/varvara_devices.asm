@@ -83,32 +83,6 @@ vector_handlers::
     jr      z, .noControllerVector
     ldh     [hPriorKeys], a
 
-    ; Inject UXN button byte into device memory
-
-    ; Change high nibble GB order DULR to UXN order of RLDU
-    ; TODO: There has to be a faster way to do this!
-    ld      d, a    ; cache original byte
-    swap    a
-    srl     a       ; get R bit
-    rl      e       ; push R bit
-    srl     a       ; get L bit
-    rl      e       ; push L bit
-    srl     a       ; get U bit
-    rl      h       ; cache U bit
-    srl     a       ; get D bit
-    rl      e       ; push D bit
-    srl     h       ; recover U bit
-    rl      e       ; push U bit
-    swap    e
-    ld      a, e
-    and     $f0     ; only keep dpad bits
-    ld      e, a
-    ld      a, d
-    and     $0f     ; only keep button bits
-    or      e       ; merge dpad+buttons
-
-    ld      [devices + $82], a
-
     ld      hl, uxn_memory
     add     hl, bc
 
@@ -153,12 +127,138 @@ dev_system_dei2::
 ; d = device
 ; b = data
 dev_system_deo::
-    ; TODO: "Special handling" (set wst/rst/palette)
+
+    ; TODO: Check for any writes to RGB range
+
+;     ld      a, d
+;     cp      $08
+;     jr      nz, .notRed
+;     call    updatePalette
+; .notRed
+;     cp      $0a
+;     jr      nz, .notGreen
+;     call    updatePalette
+; .notGreen
+;     cp      $0c
+;     jr      nz, .notBlue
+;     call    updatePalette
+; .notBlue
+
     ret
+
+; Convert the color values stored in the system device to a host-compatible palette
+;  and then queue up a palette update for the next VBlank
+updatePalette:
+
+    ldh     a, [hConsoleType]
+    or      a
+    jr      z, .gbc
+
+    ; For DMG convert the RGB to a 2 bit value
+    ; Input: 4bit RGB for each of 4 channels, stored in 6 bytes
+    ; Output: 2bit brightness value for each of 4 channels
+
+    ; TODO: Set hOBP0 and hBGP directly
+
+    ret
+.gbc
+
+    ; For CGB convert from 12 bit to 15 bit RGB
+    ; CGB: xBBBBBGG_GGGRRRRR
+    ld      hl, devices + $08
+    ld      bc, wPendingPalettes
+    call    convertTwoColors
+    call    convertTwoColors
+
+    ld      a, 1
+    ldh     [hPalettePending], a
+.done
+    ret
+
+convertTwoColors:
+    ; color 0
+    ld      a, [hli]    ; red
+    inc     l
+    and     $f0
+    swap    a
+    sla     a
+    ld      e, a
+    ld      a, [hli]    ; green
+    inc     l
+    and     $f0
+    ld      d, a
+    sla     a
+    or      e
+    ld      [bc], a     ; low byte of color 0
+    inc     bc
+    ld      a, d
+    swap    a
+    sra     a
+    ld      d, a
+    ld      a, [hld]    ; blue
+    dec     l
+    dec     l
+    dec     l
+    and     $f0
+    sra     a
+    or      d
+    ld      [bc], a     ; high byte of color 0
+    inc     bc
+
+    ; color 1
+    ld      a, [hli]    ; red
+    inc     l
+    and     $0f
+    sla     a
+    ld      e, a
+    ld      a, [hli]    ; green
+    inc     l
+    and     $0f
+    ld      d, a
+    swap    a
+    sla     a
+    or      e
+    ld      [bc], a     ; low byte of color 1
+    inc     bc
+    ld      a, d
+    sra     a
+    ld      d, a
+    ld      a, [hld]    ; blue
+    dec     l
+    dec     l
+    and     $0f
+    swap    a
+    sra     a
+    or      d
+    ld      [bc], a     ; high byte of color 1
+    inc     bc
+
+    ret
+
+debug_palettes:
+    dw 0        ; black
+    dw 8935     ; green
+    dw 6879     ; orange
+    dw 32767    ; white
 
 ; d = device
 ; bc = data
 dev_system_deo2::
+
+    ld      a, d
+    cp      $08
+    jr      nz, .notRed
+    call    updatePalette
+.notRed
+    cp      $0a
+    jr      nz, .notGreen
+    call    updatePalette
+.notGreen
+    cp      $0c
+    jr      nz, .notBlue
+    call    updatePalette
+.notBlue
+
     ret
 
 ; d = device
@@ -536,6 +636,11 @@ dev_screen_deo::
     jr      nz, :-
     ldh     a, [working_bytes]
     ld      [hli], a
+    ; In some cases (hello-pong) we seem to regularly hit inaccessible VRAM here right after the
+    ;  STAT interrupt for the tile bank swap, so be super careful instead.
+:   ldh     a, [rSTAT]
+    and     STATF_BUSY
+    jr      nz, :-
     ldh     a, [working_bytes+1]
     ld      [hli], a
 
@@ -548,11 +653,17 @@ dev_screen_deo::
     ld      b, 8        ; byte counter
 .2bpp_v
 
+    push    hl
+
     ld      a, [de]     ; setup working bytes for this 8-pixel row
-    inc     de
+    ld      hl, $0008   ; UXN tile data isn't interlaced like GB, so we have to span 8 bytes
+    add     hl, de
     ldh     [working_bytes], a
-    ld      a, [de]
-    inc     de
+    ld      a, [hl]
+    ld      de, -$0007  ; setup for next 2bpp byte
+    add     hl, de
+    ld      d, h
+    ld      e, l
     ldh     [working_bytes+1], a
 
     ; Note: The bit loop is currently the same for 1bpp and 2bpp once the working_bytes are loaded
@@ -564,8 +675,6 @@ dev_screen_deo::
     ld      b, a
     ldh     a, [working_bytes+1]
     ld      c, a
-
-    push    hl
 
     xor     a
     sla     c           ; shift high bit into carry
@@ -586,18 +695,24 @@ dev_screen_deo::
     rl      a           ; shift high bit into high working byte
     ldh     [working_bytes+1], a
 
-    pop     hl
 
     pop     bc
     dec     c
     jr      nz, .2bpp_bit
     
+    pop     hl
+
     ; working byte is now ready, copy to VRAM
 :   ldh     a, [rSTAT]
     and     STATF_BUSY
     jr      nz, :-
     ldh     a, [working_bytes]
     ld      [hli], a
+    ; In some cases (hello-pong) we seem to regularly hit inaccessible VRAM here right after the
+    ;  STAT interrupt for the tile bank swap, so be super careful instead.
+:   ldh     a, [rSTAT]
+    and     STATF_BUSY
+    jr      nz, :-
     ldh     a, [working_bytes+1]
     ld      [hli], a
 

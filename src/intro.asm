@@ -42,6 +42,7 @@ page_program::
 
 SECTION "Console WRAM", WRAM0
 cursor_addr::   ds 2
+wPendingPalettes::  ds 16   ; one full BG and OBJ palette for CGB
 
 SECTION "Intro", ROMX
 
@@ -64,17 +65,12 @@ Intro::
     rst     MemcpySmall
 
     ; uxn_boot
-    ; initialize all 8 banks of RAM with 0
-    ld      d, 8
-    .zeroRAM
-        xor     a
-        ld      hl, uxn_memory
-        ld      bc, $1FFF
-        push    de
-        rst     Memset
-        pop     de
-        dec     d
-        jr      nz, .zeroRAM
+    ; initialize the single bank of external RAM we're currently using
+    ; TODO: If we expand to support the full 64KB UXN memory space, clear all 8 banks instead
+    xor     a
+    ld      hl, uxn_memory
+    ld      bc, $2000
+    rst     Memset
 
     ; Initialize stack pointers
     ldh     [wst_ptr], a
@@ -84,7 +80,7 @@ Intro::
     ; TODO: Copy in banks
     ld      de, staticROM
     ld      hl, page_program
-    ld      bc, staticROM.end - staticROM
+    ld      bc, $2000-$100 ; Blindly copy the 8KB maximum supported ROM size minus the zero page
     call    Memcpy
 
     ; initialize PC
@@ -179,23 +175,11 @@ instr_jump_table:
     ; 0xF0
     dw _LDZ2kr, _STZ2kr, _LDR2kr, _STR2kr, _LDA2kr, _STA2kr, _DEI2kr, _DEO2kr, _ADD2kr, _SUB2kr, _MUL2kr, _DIV2kr, _AND2kr, _ORA2kr, _EOR2kr, _SFT2kr
 
-SECTION "UXN ROM", ROMX, ALIGN[$0100]
+; Single byte so the output ROM runs right up to this point
+;SECTION "End Pad", ROM0[$3FFF]
+;    db $FF
+
+; Attachment point for appended UXN ROM
+SECTION "UXN ROM", ROMX[$4000]
 staticROM:
-    ;incbin "res/tests.rom"
-    ;incbin "res/console.rom"
-    ;incbin "res/tests_extended.rom"
-    ;incbin "res/hello-screen.rom"
-    incbin "res/hello-pong.rom"
-    ;incbin "res/calc.rom"
-    ;incbin "res/catclock.rom"
-    ;incbin "res/mandelbrot_gb.rom"
-    ;incbin "res/hello-line.rom"
-    ;incbin "res/cube3d.rom"
-    ;incbin "res/catcubes.rom"
-    ;incbin "res/bunnymark.rom"
-    ;incbin "res/piano.rom"
-    ;incbin "res/dvd.rom"
-    ;incbin "res/snake_gb.rom"
-    ;incbin "res/life.rom"
-    ;incbin "res/move.rom"
-.end
+    incbin "roms/hello-pong.rom"
