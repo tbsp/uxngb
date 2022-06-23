@@ -72,6 +72,7 @@ Reset::
     ldh     [hCanSoftReset], a
     dec     a ; ld a, $FF
     ldh     [hHeldKeys], a
+    ldh     [hPriorKeys], a
 
     ; Load the correct ROM bank for later
     ; Important to do it before enabling interrupts

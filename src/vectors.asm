@@ -265,6 +265,7 @@ hOBP1:: db
 ; U+D and L+R are filtered out by software, so they will never happen
 hHeldKeys:: db
 hPressedKeys:: db
+hPriorKeys:: db
 
 ; If this is 0, pressing SsAB at the same time will not reset the game
 hCanSoftReset:: db

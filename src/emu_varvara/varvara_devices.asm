@@ -55,9 +55,92 @@ tile_buffer:    ds 16   ; buffer for tile data during blit
 SECTION "Varvara HRAM", HRAM
 device_byte:    ds 1    ; copy of the device byte for fast access
 data_byte:      ds 1    ; copy of the data byte for fast access
-;blend_bytes:    ds 4    ; 4 blend bytes for the current blend mode
-;source_bytes:   ds 2    ; source bytes for pixel blend
 working_bytes:  ds 2    ; stores both the input bytes (initially) and the final pixel data (after blending)
+working_x:      ds 1    ; working X coordinate for repeated auto sprite writes
+delta_y:        ds 1    ; delta Y to apply each auto sprite write
+working_y:      ds 1    ; working Y coordinate for repeated auto sprite writes
+delta_x:        ds 1    ; delta X to apply each auto sprite write
+auto_len:       ds 1    ; length of auto writes
+auto_addr:      ds 1    ; auto addr flag
+
+SECTION "Varvara Vectors", ROM0
+
+vector_handlers::
+
+    ; controller vector
+    ld      hl, devices + $80
+    ld      a, [hli]
+    ld      c, [hl]
+    ld      b, a
+    or      c
+    jr      z, .noControllerVector
+
+    ; Check for change in controller state
+    ldh     a, [hPriorKeys]
+    ld      d, a
+    ldh     a, [hHeldKeys]
+    cp      d
+    jr      z, .noControllerVector
+    ldh     [hPriorKeys], a
+
+    ; Inject UXN button byte into device memory
+
+    ; Change high nibble GB order DULR to UXN order of RLDU
+    ; TODO: There has to be a faster way to do this!
+    ld      d, a    ; cache original byte
+    swap    a
+    srl     a       ; get R bit
+    rl      e       ; push R bit
+    srl     a       ; get L bit
+    rl      e       ; push L bit
+    srl     a       ; get U bit
+    rl      h       ; cache U bit
+    srl     a       ; get D bit
+    rl      e       ; push D bit
+    srl     h       ; recover U bit
+    rl      e       ; push U bit
+    swap    e
+    ld      a, e
+    and     $f0     ; only keep dpad bits
+    ld      e, a
+    ld      a, d
+    and     $0f     ; only keep button bits
+    or      e       ; merge dpad+buttons
+
+    ld      [devices + $82], a
+
+    ld      hl, uxn_memory
+    add     hl, bc
+
+    ld      a, h
+    ldh     [pc], a
+    ld      a, l
+    ldh     [pc+1], a
+
+    call    uxn_eval    ; eval instructions until a BRK is hit
+.noControllerVector
+
+    ; screen vector
+    ld      hl, devices + $20
+    ld      a, [hli]
+    ld      c, [hl]
+    ld      b, a
+    or      c
+    jr      z, .noScreenVector
+
+    ld      hl, uxn_memory
+    add     hl, bc
+
+    ld      a, h
+    ldh     [pc], a
+    ld      a, l
+    ldh     [pc+1], a
+
+    call    uxn_eval    ; eval instructions until a BRK is hit
+.noScreenVector
+
+    ret
+
 
 SECTION "Varvara Devices", ROM0
 
@@ -130,22 +213,171 @@ dev_screen_dei::
 ; d = device
 ; bc = data
 dev_screen_dei2::
+    ; TODO: Prevent width/height from exceeding 160x144 screen size
     ret
 
 ; d = device
 ; b = data
 dev_screen_deo::
     ld      a, b
+    ;inc     a
     ldh     [data_byte], a
     ; Determine operation
     ld      a, d
     ldh     [device_byte], a
+    cp      $2e
+    jr      z, .pixel
     cp      $2f
-    jr      z, .sprite
+    jp      z, .sprite
     ret
+
+.pixel
+    bit     6, a
+    jp      nz, .pixel_fg
+    ; background pixel
+
+    ld      de, devices + $2b   ; low(y)
+    ld      a, [de]
+    dec     e
+    dec     e
+
+    ; aligned tile address is:
+    ; y/8*20*16
+    ; Note: Taken from sprite aligned code below
+    srl     a   ; y/8
+    srl     a
+    ;srl     a
+    ;sla     a   ; double for table which stores words
+    and     %11111110
+    ld      hl, Y_TIMES_320_VRAM
+    add     l
+    ld      l, a
+    adc     h
+    sub     l
+    ld      h, a
+    ld      a, [hli]    ; y/8*320
+    ld      b, [hl]
+    ld      c, a        ; bc=$8000+y/8*320
+
+    ld      a, [de]     ; low(x)
+    srl     a           ; x/8
+    srl     a
+    srl     a
+    swap    a           ; x/8*16, overflow bit in lsb
+    ld      l, a
+    ld      h, 0
+    srl     l           ; move possible overflow bit to carry
+    rl      h           ; move possible overflow bit to H
+    sla     l           ; restore L minus bit
+    add     hl, bc
+
+    ; Add non-aligned Y
+    ld      a, [devices + $2b] ; low(y)
+    and     %00000111   ; retain only sub-tile component
+    sla     a           ; double (2 bytes per pixel row)
+    ld      c, a
+    ld      b, 0
+    add     hl, bc
+
+    ld      a, [devices + $29] ; low(x)
+    and     %00000111   ; retain only sub-tile component
+    ld      c, a        ; number of bits to shift before pixel insertion
+
+    ld      d, %01111111    ; mask to clear bit
+    ld      a, c
+    or      a
+    jr      z, .mask_ready
+    scf
+.pixel_loop
+    rr      d
+    dec     c
+    jr      nz, .pixel_loop
+.mask_ready
+    ld      a, %11111111
+    xor     d
+    ld      e, a        ; mask to set bit is the inverse of the mask to clear a bit
+
+    ldh     a, [data_byte]
+    and     $03         ; TODO: What do values above 3 do?
+    ld      c, a        ; 0-3 value to write
+
+:   ldh     a, [rSTAT]
+    and     STATF_BUSY
+    jr      nz, :-
+    ld      b, [hl]     ; read current byte value
+
+    srl     c           ; shift lsb into carry to see if we should set or clear bit
+    ld      a, b
+    jr      c, .pixel_set0
+    and     d           ; and with clear mask
+    jr      .pixel_done0
+.pixel_set0
+    or      e           ; and with set mask
+.pixel_done0
+    ld      b, a
+
+:   ldh     a, [rSTAT]
+    and     STATF_BUSY
+    jr      nz, :-
+    ld      [hl], b     ; write new byte value
+
+    ; second byte!
+    inc     l
+    ld      b, [hl]     ; read current byte value
+
+    srl     c           ; shift lsb into carry to see if we should set or clear bit
+    ld      a, b
+    jr      c, .pixel_set1
+    and     d           ; and with clear mask
+    jr      .pixel_done1
+.pixel_set1
+    or      e           ; and with set mask
+.pixel_done1
+    ld      b, a
+
+:   ldh     a, [rSTAT]
+    and     STATF_BUSY
+    jr      nz, :-
+    ld      [hl], b     ; write new byte value
+
+    ; auto-advance based on auto flag
+    ld      a, [devices + $26]
+    bit     0, a
+    jr      z, .pixel_noAutoX
+    ld      hl, devices + $28
+    ld      a, [hli]
+    ld      b, a
+    ld      a, [hl]
+    ld      c, a
+    inc     bc
+    ld      a, c
+    ld      [hld], a
+    ld      a, b
+    ld      [hl], a
+.pixel_noAutoX
+    ld      a, [devices + $26]
+    bit     1, a
+    jr      z, .pixel_noAutoY
+    ld      hl, devices + $2a
+    ld      a, [hli]
+    ld      b, a
+    ld      a, [hl]
+    ld      c, a
+    inc     bc
+    ld      a, c
+    ld      [hld], a
+    ld      a, b
+    ld      [hl], a
+.pixel_noAutoY
+
+    ret
+
+.pixel_fg
+    ret
+
 .sprite
     bit     6, a
-    jp      nz, .fg
+    jp      nz, .sprite_fg
     ; background 'sprite'
     ; - determine if tile-aligned
     ;   - aligned: blit from addr to tile with blending mode
@@ -172,6 +404,37 @@ dev_screen_deo::
     ld      a, [hl]
     ld      [pixel_blend+3], a
 
+    ld      a, [devices + $26]  ; auto
+    ld      c, a
+    and     $f0
+    swap    a
+    inc     a       ; inc to make loop simpler
+    ldh     [auto_len], a
+    ld      a, c
+    and     %00000100   ; auto addr
+    ldh     [auto_addr], a
+    ld      a, c
+    and     %00000001   ; autoX * 8 for deltaX
+    sla     a
+    sla     a
+    sla     a
+    ldh     [delta_x], a
+    ld      a, c
+    and     %00000010   ; autoX * 8 for deltaY
+    sla     a
+    sla     a
+    ldh     [delta_y], a
+
+    ; initialize working x/y coordinates
+    ; TODO: Check high byte to see if we should just not render this at all
+    ld      hl, devices + $29
+    ld      a, [hli]    ; low(x)
+    ldh     [working_x], a
+    inc     l
+    ld      a, [hli]    ; low(y)
+    ldh     [working_y], a
+    
+.bg_auto_loop
     ; Locate UXN addr in SRAM (TODO: Account for banks)
     ld      hl, devices + $2c   ; addr
     ld      d, [hl]
@@ -187,12 +450,7 @@ dev_screen_deo::
     ld      c, 16
     rst     MemcpySmall
 
-    ; TODO: Check high byte to see if we should just not render this at all
-    ld      de, devices + $2b   ; low(y)
-    ld      a, [de]
-    dec     e
-    dec     e
-
+    ldh     a, [working_y]
     ; aligned tile address is:
     ; y/8*20*16
     srl     a   ; y/8
@@ -210,7 +468,7 @@ dev_screen_deo::
     ld      b, [hl]
     ld      c, a        ; bc=$8000+y/8*320
 
-    ld      a, [de]     ; low(x)
+    ldh     a, [working_x]
     srl     a           ; x/8
     srl     a
     srl     a
@@ -284,7 +542,7 @@ dev_screen_deo::
     dec     b
     jr      nz, .1bpp_v
 
-    ret
+    jr      .sprite_auto
 
 .2bpp
     ld      b, 8        ; byte counter
@@ -346,9 +604,65 @@ dev_screen_deo::
     dec     b
     jr      nz, .2bpp_v
 
+.sprite_auto
+    ; apply auto adjustments
+    ld      hl, working_x
+    ld      a, [hli]    ; get working_x
+    add     [hl]        ; add delta_y (yes)
+    dec     l
+    ld      [hli], a    ; store new working_x
+    inc     l
+    ld      a, [hli]    ; get working_y
+    add     [hl]        ; add delta_x (yes)
+    dec     l
+    ld      [hli], a    ; store new working_y
+
+    ldh     a, [auto_addr]
+    or      a
+    jr      z, .doneAutoAddr
+    ld      d, 8    ; addr delta for 1bpp
+    ldh     a, [data_byte]
+    bit     7, a    
+    jr      z, .autoAddr1bpp
+    sla     d       ; double addr delta for 2bpp
+.autoAddr1bpp
+    ld      hl, devices + $2c
+    ld      a, [hli]
+    ld      c, [hl]
+    ld      b, a
+    ld      a, d
+    add     c
+    ld      c, a
+    adc     b
+    sub     c
+    ld      b, a
+    ld      [hl], c
+    dec     l
+    ld      [hl], b
+.doneAutoAddr
+
+    ldh     a, [auto_len]
+    dec     a
+    ldh     [auto_len], a
+    jp      nz, .bg_auto_loop
+
+    ; perform final auto adjustments
+
+    ; Note: The auto x/y functions in a somewhat unintuitive manner, but is quite clever in allowing
+    ;  automatic sprite layout over both dimensions since the opposite deltas are applied during a single
+    ;  auto write, and then applied to the named dimensions afterwards, setting up subsequent writes.
+    ld      hl, devices + $29 ; low(x)
+    ldh     a, [delta_x]
+    add     [hl]
+    ld      [hli], a
+    inc     l
+    ldh     a, [delta_y]
+    add     [hl]
+    ld      [hl], a
+
     ret
     
-.fg
+.sprite_fg
     ; OAM sprite
     ; - blit to OAM tile space
     ; - create OAM entry at x/y coords for this tile

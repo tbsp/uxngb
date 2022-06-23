@@ -22,6 +22,12 @@ SECTION "UXNCLI Device Defaults", ROM0
 device_defaults::
     ds 256, 0
 
+
+SECTION "UXNCLI Vectors", ROM0
+
+vector_handlers::
+    ret
+
 SECTION "UXNCLI Devices", ROM0
 
 dev_system_dei::

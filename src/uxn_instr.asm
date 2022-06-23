@@ -439,6 +439,9 @@ _STA::
 _DEI::
     ld      h, HIGH(w_st)
     ldh     a, [wst_ptr]
+.early_continue
+    ld      e, a
+    dec     e
 .continue
     ld      l, a
     dec     l
@@ -451,8 +454,9 @@ _DEI::
     add     l
     ld      l, a
 
-    ld      a, [hli]
+    ld      a, [hl]
     pop     hl
+    ld      l, e    ; stack store location
     ld      [hl], a
 
     ; get handler address
@@ -1047,6 +1051,8 @@ _DEI2::
     ld      h, HIGH(w_st)
     ldh     a, [wst_ptr]
     ld      l, a
+    ld      e, a
+    dec     e
     inc     a
     ldh     [wst_ptr], a
 .continue
@@ -1063,6 +1069,7 @@ _DEI2::
     ld      a, [hli]
     ld      b, [hl]
     pop     hl
+    ld      l, e    ; stack store location
     ld      [hli], a
     ld      [hl], b
 
@@ -1583,7 +1590,7 @@ _STAr::
 _DEIr::
     ld      h, HIGH(r_st)
     ldh     a, [rst_ptr]
-    jp      _DEI.continue
+    jp      _DEI.early_continue
 
 ; DEOr val device8 --
 _DEOr::
@@ -1961,6 +1968,8 @@ _DEI2r::
     ld      h, HIGH(r_st)
     ldh     a, [rst_ptr]
     ld      l, a
+    ld      e, a
+    dec     e
     inc     a
     ldh     [rst_ptr], a
     jp      _DEI2.continue
@@ -2241,8 +2250,10 @@ _JSRk::
 _STHk::
     WST_HL_dec
     ld      b, [hl]
-    RST_HL_dec
+    RST_HL
     ld      [hl], b
+    inc     l
+    RST_PTR_L
     ret
 
 ; LDZk addr8 -- addr8 value
@@ -2252,7 +2263,7 @@ _LDZk::
     ld      c, [hl]
     ld      a, [bc]
     inc     l
-    ld      [hl], a
+    ld      [hli], a
     WST_PTR_L
     ret
 
@@ -2340,6 +2351,7 @@ _STAk::
 _DEIk::
     ld      h, HIGH(w_st)
     ldh     a, [wst_ptr]
+    ld      e, a
     inc     a
     ldh     [wst_ptr], a
     sub     2
@@ -2966,8 +2978,16 @@ _STA2k::
     ld      [bc], a
     ret
 
+; DEI2k device8 -- device8 value
 _DEI2k::
-    rst     Crash
+    ld      h, HIGH(w_st)
+    ldh     a, [wst_ptr]
+    ld      l, a
+    ld      e, a
+    inc     a
+    inc     a
+    ldh     [wst_ptr], a
+    jp      _DEI2.continue
 
 ; DEO2k value device8 -- value device8
 _DEO2k::
@@ -3380,8 +3400,10 @@ _JSRkr::
 _STHkr::
     RST_HL_dec
     ld      b, [hl]
-    WST_HL_dec
+    WST_HL
     ld      [hl], b
+    inc     l
+    WST_PTR_L
     ret
 
 ; LDZkr addr8 -- addr8 value
@@ -3391,7 +3413,7 @@ _LDZkr::
     ld      c, [hl]
     ld      a, [bc]
     inc     l
-    ld      [hl], a
+    ld      [hli], a
     RST_PTR_L
     ret
 
@@ -3451,6 +3473,7 @@ _STAkr::
 _DEIkr::
     ld      h, HIGH(r_st)
     ldh     a, [rst_ptr]
+    ld      e, a
     inc     a
     ldh     [rst_ptr], a
     sub     2
@@ -3707,7 +3730,13 @@ _STH2kr::
     ld      b, [hl]
     dec     l
     ld      c, [hl]
-    jp      _STH2.continue
+    WST_HL      ; destroys A
+    ld      [hl], c
+    inc     l
+    ld      [hl], b
+    inc     l
+    WST_PTR_L
+    ret
 
 ; LDZkr addr8 -- addr8 value
 _LDZ2kr::
@@ -3783,8 +3812,16 @@ _STA2kr::
     ld      d, [hl]
     jp      _STA2k.continue
 
+; DEI2kr device8 -- device8 value
 _DEI2kr::
-    rst     Crash
+    ld      h, HIGH(r_st)
+    ldh     a, [rst_ptr]
+    ld      l, a
+    ld      e, a
+    inc     a
+    inc     a
+    ldh     [rst_ptr], a
+    jp      _DEI2.continue
 
 ; DEO2kr value device8 -- value device8
 _DEO2kr::

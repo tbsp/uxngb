@@ -93,7 +93,19 @@ Intro::
     ld      a, LOW(page_program)
     ldh     [pc+1], a
 
-    ; fall through to uxn_eval
+    ; initial eval loop
+    call    uxn_eval
+
+brk_loop:
+    ; BRK idles, calling vector handlers as required once per VBlank
+    rst     WaitVBlank
+    call    vector_handlers
+    jr      brk_loop
+
+system_halt:
+    rst     WaitVBlank
+    jr      system_halt
+
 
 uxn_eval:
 
@@ -108,7 +120,7 @@ uxn_eval:
 
     ld      a, b        ; see if we've hit a BRK
     or      a
-    jr      z, brk_loop
+    ret     z           ; break out of eval loop
 
     inc     hl          ; increment PC, and store new value
     ld      a, h
@@ -129,19 +141,6 @@ uxn_eval:
     rst     CallHL      ; call handler
 
     jr      uxn_eval
-
-brk_loop:
-    ; BRK idles, calling vector handlers as required
-    rst     WaitVBlank
-
-    ; TODO: controller vector
-    ; TODO: screen vector
-
-    jr      brk_loop
-
-system_halt:
-    rst     WaitVBlank
-    jr      system_halt
 
 
 SECTION "Instruction Jump Table", ROM0
@@ -185,5 +184,18 @@ staticROM:
     ;incbin "res/tests.rom"
     ;incbin "res/console.rom"
     ;incbin "res/tests_extended.rom"
-    incbin "res/hello-screen.rom"
+    ;incbin "res/hello-screen.rom"
+    incbin "res/hello-pong.rom"
+    ;incbin "res/calc.rom"
+    ;incbin "res/catclock.rom"
+    ;incbin "res/mandelbrot_gb.rom"
+    ;incbin "res/hello-line.rom"
+    ;incbin "res/cube3d.rom"
+    ;incbin "res/catcubes.rom"
+    ;incbin "res/bunnymark.rom"
+    ;incbin "res/piano.rom"
+    ;incbin "res/dvd.rom"
+    ;incbin "res/snake_gb.rom"
+    ;incbin "res/life.rom"
+    ;incbin "res/move.rom"
 .end
