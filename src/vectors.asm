@@ -167,6 +167,9 @@ VBlankHandler:
     xor     a
     ldh     [hPalettePending], a
 
+    push    hl
+    push    bc
+
     ; Apply the pending palettes
     ld      hl, wPendingPalettes
     ld      a, BCPSF_AUTOINC
@@ -187,6 +190,9 @@ VBlankHandler:
     ldh     [rOCPD], a
     dec     b
     jr      nz, .objPal
+
+    pop     bc
+    pop     hl
 
 .noPalettePending
 
