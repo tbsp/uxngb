@@ -338,6 +338,8 @@ dev_screen_deo::
 
     ld      de, devices + $2b   ; low(y)
     ld      a, [de]
+    cp      144
+    jr      nc, .pixel_yOutOfRange
     dec     e
     dec     e
 
@@ -440,6 +442,7 @@ dev_screen_deo::
     jr      nz, :-
     ld      [hl], b     ; write new byte value
 
+.pixel_yOutOfRange
     ; auto-advance based on auto flag
     ld      a, [devices + $26]
     bit     0, a
@@ -551,6 +554,9 @@ dev_screen_deo::
     rst     MemcpySmall
 
     ldh     a, [working_y]
+    cp      144
+    jp      nc, .bg_yOutOfRange
+
     ; aligned tile address is:
     ; y/8*20*16
     srl     a   ; y/8
@@ -595,6 +601,8 @@ dev_screen_deo::
     xor     a           ; high byte is always zero for 1bpp
     ldh     [working_bytes+1], a
 
+    push    hl
+
     ld      c, 8        ; bit counter
 .1bpp_bit
     push    bc
@@ -602,8 +610,6 @@ dev_screen_deo::
     ld      b, a
     ldh     a, [working_bytes+1]
     ld      c, a
-
-    push    hl
 
     xor     a
     sla     c           ; shift high bit into carry
@@ -624,12 +630,12 @@ dev_screen_deo::
     rl      a           ; shift high bit into high working byte
     ldh     [working_bytes+1], a
 
-    pop     hl
-
     pop     bc
     dec     c
     jr      nz, .1bpp_bit
     
+    pop     hl
+
     ; working byte is now ready, copy to VRAM
 :   ldh     a, [rSTAT]
     and     STATF_BUSY
@@ -719,6 +725,7 @@ dev_screen_deo::
     dec     b
     jr      nz, .2bpp_v
 
+.bg_yOutOfRange
 .sprite_auto
     ; apply auto adjustments
     ld      hl, working_x
