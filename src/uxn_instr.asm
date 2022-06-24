@@ -3002,6 +3002,7 @@ _DEO2k::
 ; ADD2k a b -- a b c
 _ADD2k::
     WMATH_2K_SETUP
+.finally
     push    hl
     ld      h, d
     ld      l, e
@@ -3016,6 +3017,7 @@ _ADD2k::
 ; SUB2k a b -- a b c
 _SUB2k::
     WMATH_2K_SETUP
+.finally
     ld      a, e
     sub     c
     ld      e, a
@@ -3028,6 +3030,7 @@ _SUB2k::
 ; MUL2k a b c d -- a b c d e f
 _MUL2k::
     WMATH_2K_SETUP
+.finally
     push    hl
 
     ; http://map.grauw.nl/articles/mult_div_shifts.php
@@ -3055,6 +3058,7 @@ _MUL2k::
 ; DIV2k a b c d -- a b c d e f
 _DIV2k::
     WMATH_2K_SETUP
+.finally
     push    hl
 
     ; http://www.devrs.com/gb/asmcode.php (U161616a v1.0 by Jeff Frohwein)
@@ -3836,22 +3840,22 @@ _DEO2kr::
 ; ADD2kr a b -- a b c
 _ADD2kr::
     RMATH_2K_SETUP
-    jp      _ADD2k.continue
+    jp      _ADD2k.finally
 
 ; SUB2kr a b -- a b c
 _SUB2kr::
     RMATH_2K_SETUP
-    jp      _SUB2k.continue
+    jp      _SUB2k.finally
 
 ; MUL2kr a b c d -- a b c d e f
 _MUL2kr::
     RMATH_2K_SETUP
-    jp      _MUL2k.continue
+    jp      _MUL2k.finally
 
 ; DIV2kr a b c d -- a b c d e f
 _DIV2kr::
     RMATH_2K_SETUP
-    jp      _DIV2k.continue
+    jp      _DIV2k.finally
 
 ; AND2kr a b -- a b c
 _AND2kr::
