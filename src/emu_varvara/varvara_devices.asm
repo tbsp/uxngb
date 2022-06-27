@@ -72,15 +72,19 @@ pixel_blend:    ds 4    ; 4 blend bytes for the current blend mode
 tile_buffer:    ds 16   ; buffer for tile data during blit
 
 SECTION "Varvara HRAM", HRAM
-device_byte:    ds 1    ; copy of the device byte for fast access
-data_byte:      ds 1    ; copy of the data byte for fast access
-working_bytes:  ds 2    ; stores both the input bytes (initially) and the final pixel data (after blending)
-working_x:      ds 1    ; working X coordinate for repeated auto sprite writes
-delta_y:        ds 1    ; delta Y to apply each auto sprite write
-working_y:      ds 1    ; working Y coordinate for repeated auto sprite writes
-delta_x:        ds 1    ; delta X to apply each auto sprite write
-auto_len:       ds 1    ; length of auto writes
-auto_addr:      ds 1    ; auto addr flag
+device_byte:        ds 1    ; copy of the device byte for fast access
+data_byte:          ds 1    ; copy of the data byte for fast access
+working_bytes:      ds 2    ; stores both the input bytes (initially) and the final pixel data (after blending)
+working_x:          ds 1    ; working X coordinate for repeated auto sprite writes
+delta_y:            ds 1    ; delta Y to apply each auto sprite write
+working_y:          ds 1    ; working Y coordinate for repeated auto sprite writes
+delta_x:            ds 1    ; delta X to apply each auto sprite write
+auto_len:           ds 1    ; length of auto writes
+auto_addr:          ds 1    ; auto addr flag
+pixel_x:            ds 1    ; current x/y coordinates for pixel drawing (used by pixel and unaligned BG sprite drawinng)
+pixel_y:            ds 1
+pixel_data:         ds 1
+sprite_unaligned:   ds 1    ; flag indicating if BG sprite being drawn is unaligned to the grid
 
 SECTION "Varvara Vectors", ROM0
 
@@ -314,118 +318,20 @@ dev_screen_deo::
 .pixel
     bit     6, a
     jp      nz, .pixel_fg
-    ; background pixel
 
+    ; background pixel
     ld      de, devices + $2b   ; low(y)
     ld      a, [de]
-    cp      144
-    jr      nc, .pixel_yOutOfRange
+    ldh     [pixel_y], a
     dec     e
     dec     e
-
-    ; aligned tile address is:
-    ; y/8*20*16
-    ; Note: Taken from sprite aligned code below
-    srl     a   ; y/8
-    srl     a
-    ;srl     a
-    ;sla     a   ; double for table which stores words
-    and     %11111110
-    ld      hl, Y_TIMES_320_VRAM
-    add     l
-    ld      l, a
-    adc     h
-    sub     l
-    ld      h, a
-    ld      a, [hli]    ; y/8*320
-    ld      b, [hl]
-    ld      c, a        ; bc=$8000+y/8*320
-
-    ld      a, [de]     ; low(x)
-    cp      160
-    jr      nc, .pixel_xOutOfRange
-    srl     a           ; x/8
-    srl     a
-    srl     a
-    swap    a           ; x/8*16, overflow bit in lsb
-    ld      l, a
-    ld      h, 0
-    srl     l           ; move possible overflow bit to carry
-    rl      h           ; move possible overflow bit to H
-    sla     l           ; restore L minus bit
-    add     hl, bc
-
-    ; Add non-aligned Y
-    ld      a, [devices + $2b] ; low(y)
-    and     %00000111   ; retain only sub-tile component
-    sla     a           ; double (2 bytes per pixel row)
-    ld      c, a
-    ld      b, 0
-    add     hl, bc
-
-    ld      a, [devices + $29] ; low(x)
-    and     %00000111   ; retain only sub-tile component
-    ld      c, a        ; number of bits to shift before pixel insertion
-
-    ld      d, %01111111    ; mask to clear bit
-    ld      a, c
-    or      a
-    jr      z, .mask_ready
-    scf
-.pixel_loop
-    rr      d
-    dec     c
-    jr      nz, .pixel_loop
-.mask_ready
-    ld      a, %11111111
-    xor     d
-    ld      e, a        ; mask to set bit is the inverse of the mask to clear a bit
-
+    ld      a, [de]             ; low(x)
+    ldh     [pixel_x], a
     ldh     a, [data_byte]
-    and     $03         ; TODO: What do values above 3 do?
-    ld      c, a        ; 0-3 value to write
+    ldh     [pixel_data], a
 
-:   ldh     a, [rSTAT]
-    and     STATF_BUSY
-    jr      nz, :-
-    ld      b, [hl]     ; read current byte value
+    call    pixel_draw
 
-    srl     c           ; shift lsb into carry to see if we should set or clear bit
-    ld      a, b
-    jr      c, .pixel_set0
-    and     d           ; and with clear mask
-    jr      .pixel_done0
-.pixel_set0
-    or      e           ; and with set mask
-.pixel_done0
-    ld      b, a
-
-:   ldh     a, [rSTAT]
-    and     STATF_BUSY
-    jr      nz, :-
-    ld      [hl], b     ; write new byte value
-
-    ; second byte!
-    inc     l
-    ld      b, [hl]     ; read current byte value
-
-    srl     c           ; shift lsb into carry to see if we should set or clear bit
-    ld      a, b
-    jr      c, .pixel_set1
-    and     d           ; and with clear mask
-    jr      .pixel_done1
-.pixel_set1
-    or      e           ; and with set mask
-.pixel_done1
-    ld      b, a
-
-:   ldh     a, [rSTAT]
-    and     STATF_BUSY
-    jr      nz, :-
-    ld      [hl], b     ; write new byte value
-
-.pixel_yOutOfRange
-.pixel_xOutOfRange
     ; auto-advance based on auto flag
     ld      a, [devices + $26]
     bit     0, a
@@ -465,11 +371,8 @@ dev_screen_deo::
     bit     6, a
     jp      nz, .sprite_fg
     ; background 'sprite'
-    ; - determine if tile-aligned
-    ;   - aligned: blit from addr to tile with blending mode
-    ;   - unaligned: blit to 2-4 spanning tiles blending mode
 
-.bg_aligned
+.sprite_bg
     ; Get BlendingTable values for current blend value combination
     ldh     a, [data_byte]
     and     $0f         ; only retain blend nibble
@@ -516,9 +419,14 @@ dev_screen_deo::
     ld      hl, devices + $29
     ld      a, [hli]    ; low(x)
     ldh     [working_x], a
+    and     %00000111   ; keep unaligned portion
+    ld      d, a
     inc     l
     ld      a, [hli]    ; low(y)
     ldh     [working_y], a
+    and     %00000111   ; keep unaligned portion
+    or      d           ; combine with unaligned Y coordinate
+    ldh     [sprite_unaligned], a     ; flag to trigger use of (much) slower unaligned sprite drawing approach
     
     ; TODO: Make 1bpp/2bpp both copy the prepared bytes to a buffer which is then
     ;  processed the same, and results in a prepared blob to copy to VRAM either
@@ -552,6 +460,114 @@ dev_screen_deo::
     ; - blit to OAM tile space
     ; - create OAM entry at x/y coords for this tile
     ret
+
+; Draw a pixel at pixel_x/pixel_y with color based on data_byte
+; Destroys: AF, BC, HL, DE
+pixel_draw:
+    ldh     a, [pixel_y]
+    cp      144
+    ret     nc          ; out of Y range
+
+    ; aligned tile address is:
+    ; y/8*20*16
+    srl     a   ; y/8
+    srl     a
+    and     %11111110
+    ld      hl, Y_TIMES_320_VRAM
+    add     l
+    ld      l, a
+    adc     h
+    sub     l
+    ld      h, a
+    ld      a, [hli]    ; y/8*320
+    ld      b, [hl]
+    ld      c, a        ; bc=$8000+y/8*320
+
+    ldh     a, [pixel_x]
+    cp      160
+    ret     nc          ; out of X range
+    srl     a           ; x/8
+    srl     a
+    srl     a
+    swap    a           ; x/8*16, overflow bit in lsb
+    ld      l, a
+    ld      h, 0
+    srl     l           ; move possible overflow bit to carry
+    rl      h           ; move possible overflow bit to H
+    sla     l           ; restore L minus bit
+    add     hl, bc
+
+    ; Add non-aligned Y
+    ldh     a, [pixel_y]
+    and     %00000111   ; retain only sub-tile component
+    sla     a           ; double (2 bytes per pixel row)
+    ld      c, a
+    ld      b, 0
+    add     hl, bc
+
+    ldh     a, [pixel_x]
+    and     %00000111   ; retain only sub-tile component
+    ld      c, a        ; number of bits to shift before pixel insertion
+
+    ld      d, %01111111    ; mask to clear bit
+    ld      a, c
+    or      a
+    jr      z, .mask_ready
+    scf
+.loop
+    rr      d
+    dec     c
+    jr      nz, .loop
+.mask_ready
+    ld      a, %11111111
+    xor     d
+    ld      e, a        ; mask to set bit is the inverse of the mask to clear a bit
+
+    ldh     a, [pixel_data]
+    and     $03         ; TODO: What do values above 3 do?
+    ld      c, a        ; 0-3 value to write
+
+:   ldh     a, [rSTAT]
+    and     STATF_BUSY
+    jr      nz, :-
+    ld      b, [hl]     ; read current byte value
+
+    srl     c           ; shift lsb into carry to see if we should set or clear bit
+    ld      a, b
+    jr      c, .set0
+    and     d           ; and with clear mask
+    jr      .done0
+.set0
+    or      e           ; and with set mask
+.done0
+    ld      b, a
+
+:   ldh     a, [rSTAT]
+    and     STATF_BUSY
+    jr      nz, :-
+    ld      [hl], b     ; write new byte value
+
+    ; second byte!
+    inc     l
+    ld      b, [hl]     ; read current byte value
+
+    srl     c           ; shift lsb into carry to see if we should set or clear bit
+    ld      a, b
+    jr      c, .set1
+    and     d           ; and with clear mask
+    jr      .done1
+.set1
+    or      e           ; and with set mask
+.done1
+    ld      b, a
+
+:   ldh     a, [rSTAT]
+    and     STATF_BUSY
+    jr      nz, :-
+    ld      [hl], b     ; write new byte value
+
+    ret
+
 
 bg_sprite_1bpp:
     ; Locate UXN addr in SRAM (TODO: Account for banks)
@@ -640,6 +656,78 @@ bg_sprite_1bpp:
     rst     MemcpySmall
 .bg_tile_ready
 
+    ldh     a, [sprite_unaligned]
+    or      a
+    jr      z, .aligned
+
+    ; unaligned sprites perform 64 subsequent pixel_draw calls! (this is lethally inefficient)
+    ldh     a, [working_y]
+    ldh     [pixel_y], a
+    ldh     a, [working_x]
+    ldh     [pixel_x], a
+
+    ld      de, tile_buffer
+    ld      b, 8        ; byte counter
+.1bppU_v
+
+    ld      a, [de]     ; setup working bytes for this 8-pixel row
+    inc     de
+    ldh     [working_bytes], a
+    xor     a           ; high byte is always zero for 1bpp
+    ldh     [working_bytes+1], a
+
+    push    de
+    ld      c, 8        ; bit counter
+.1bppU_bit
+    push    bc
+    ldh     a, [working_bytes]
+    ld      b, a
+    rla     ; bump bits over a bit for next pass
+    ldh     [working_bytes], a
+    ldh     a, [working_bytes+1]
+    ld      c, a
+    rla     ; bump bits over a bit for next pass
+    ldh     [working_bytes+1], a
+
+    xor     a
+    sla     c           ; shift high bit into carry
+    rl      a           ; shift carry into A
+    sla     b           ; shift low bit into carry
+    rl      a           ; shift carry into A (now 'ch' 0-3 for a given pixel)
+
+    ld      h, HIGH(pixel_blend)
+    ld      l, a
+    ld      h, [hl]     ; H = blended pixel value (0-3)
+
+    ld      a, h
+    ldh     [pixel_data], a
+
+    call    pixel_draw
+
+    ldh     a, [pixel_x]
+    inc     a
+    ldh     [pixel_x], a
+
+    pop     bc
+
+.nextPixel
+    dec     c
+    jr      nz, .1bppU_bit
+    pop     de
+
+    ldh     a, [working_x]
+    ldh     [pixel_x], a
+    ldh     a, [pixel_y]
+    inc     a
+    ldh     [pixel_y], a
+
+    dec     b
+    jr      nz, .1bppU_v
+    jr      .sprite_auto
+
+.aligned
+    ; Locate target tile VRAM address
+
     ldh     a, [working_y]
     cp      144
     jp      nc, .yOutOfRange
@@ -704,7 +792,7 @@ bg_sprite_1bpp:
 
     ld      h, HIGH(pixel_blend)
     ld      l, a
-    ld      h, [hl]     ; A = blended pixel value (0-3)
+    ld      h, [hl]     ; H = blended pixel value (0-3)
 
     ldh     a, [working_bytes]
     rr      h           ; shift low bit into carry
@@ -899,6 +987,84 @@ bg_sprite_2bpp:
     rst     MemcpySmall
 .bg_tile_ready
 
+    ldh     a, [sprite_unaligned]
+    or      a
+    jr      z, .aligned
+
+    ; unaligned sprites perform 64 subsequent pixel_draw calls! (this is lethally inefficient)
+    ldh     a, [working_y]
+    ldh     [pixel_y], a
+    ldh     a, [working_x]
+    ldh     [pixel_x], a
+
+    ld      de, tile_buffer
+    ld      b, 8        ; byte counter
+.2bppU_v
+
+    ld      a, [de]     ; setup working bytes for this 8-pixel row
+    ld      hl, $0008   ; UXN tile data isn't interlaced like GB, so we have to span 8 bytes
+    add     hl, de
+    ldh     [working_bytes], a
+    ld      a, [hl]
+    ld      de, -$0007  ; setup for next 2bpp byte
+    add     hl, de
+    ld      d, h
+    ld      e, l
+    ldh     [working_bytes+1], a
+
+    push    de
+    ld      c, 8        ; bit counter
+.2bppU_bit
+    push    bc
+    ldh     a, [working_bytes]
+    ld      b, a
+    rla     ; bump bits over a bit for next pass
+    ldh     [working_bytes], a
+    ldh     a, [working_bytes+1]
+    ld      c, a
+    rla     ; bump bits over a bit for next pass
+    ldh     [working_bytes+1], a
+
+    xor     a
+    sla     c           ; shift high bit into carry
+    rl      a           ; shift carry into A
+    sla     b           ; shift low bit into carry
+    rl      a           ; shift carry into A (now 'ch' 0-3 for a given pixel)
+
+    ld      h, HIGH(pixel_blend)
+    ld      l, a
+    ld      h, [hl]     ; H = blended pixel value (0-3)
+
+    ld      a, h
+    ldh     [pixel_data], a
+
+    call    pixel_draw
+
+    ldh     a, [pixel_x]
+    inc     a
+    ldh     [pixel_x], a
+
+    pop     bc
+
+.nextPixel
+    dec     c
+    jr      nz, .2bppU_bit
+
+    ldh     a, [working_x]
+    ldh     [pixel_x], a
+    ldh     a, [pixel_y]
+    inc     a
+    ldh     [pixel_y], a
+
+    pop     de
+
+    dec     b
+    jr      nz, .2bppU_v
+    jp      .sprite_auto
+
+.aligned
+    ; Locate target tile VRAM address
+
     ldh     a, [working_y]
     cp      144
     jp      nc, .yOutOfRange
@@ -1023,7 +1189,7 @@ bg_sprite_2bpp:
     ldh     a, [auto_addr]
     or      a
     jr      z, .doneAutoAddr
-    ld      hl, devices + $2c
+    ld      hl, devices + $2c   ; addr
     ld      a, [hli]
     ld      c, [hl]
     ld      b, a
@@ -1041,7 +1207,7 @@ bg_sprite_2bpp:
     ldh     a, [auto_len]
     dec     a
     ldh     [auto_len], a
-    jp      nz, bg_sprite_1bpp
+    jp      nz, bg_sprite_2bpp
 
     ret
 
