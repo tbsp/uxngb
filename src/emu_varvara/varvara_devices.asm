@@ -45,6 +45,8 @@ device_defaults::
     db 0        ; sprite
     ; audio
     ds 16*4, 0
+    ; midi
+    ds 16, 0
     ; controller
     ds 16, 0
     ; mouse
