@@ -316,6 +316,7 @@ dev_screen_deo::
     ret
 
 .pixel
+    ld      a, b
     bit     6, a
     jp      nz, .pixel_fg
 
@@ -368,6 +369,7 @@ dev_screen_deo::
     ret
 
 .sprite
+    ld      a, b
     bit     6, a
     jp      nz, .sprite_fg
     ; background 'sprite'
