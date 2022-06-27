@@ -161,13 +161,45 @@ VBlankHandler:
     ldh     [hOAMHigh], a
 .noOAMTransfer
 
+    push    hl
+
+    ; Update datetime device time
+    ; TODO: Only run if datetime device is present
+    ld      hl, wFrameCounter
+    dec     [hl]
+    jr      nz, .notASecond
+    ld      a, 60
+    ld      [hl], a
+    ld      hl, devices + $c6
+    ld      a, [hl]
+    inc     a
+    cp      60
+    jr      nz, .done
+    xor     a
+    ld      [hld], a
+    ld      a, [hl]
+    inc     a
+    cp      60
+    jr      nz, .done
+    xor     a
+    ld      [hld], a
+    ld      a, [hl]
+    inc     a
+    cp      24
+    jr      nz, .done
+    xor     a
+    ld      [hld], a
+    ; TODO: Bother beyond days
+.done
+    ld      [hl], a
+.notASecond
+
     ldh     a, [hPalettePending]
     or      a
     jr      z, .noPalettePending
     xor     a
     ldh     [hPalettePending], a
 
-    push    hl
     push    bc
 
     ; Apply the pending palettes
@@ -192,9 +224,10 @@ VBlankHandler:
     jr      nz, .objPal
 
     pop     bc
-    pop     hl
 
 .noPalettePending
+
+    pop     hl
 
     ; Put all operations that cannot be interrupted above this line
     ; For example, OAM DMA (can't jump to ROM in the middle of it),

@@ -44,9 +44,26 @@ device_defaults::
     db 0        ; pixel
     db 0        ; sprite
     ; audio
+    ds 16*4, 0
+    ; controller
     ds 16, 0
+    ; mouse
+    ds 16, 0
+    ; file
+    ds 32, 0
+    ; datetime
+    dw 2022 ; year
+    db 1    ; month
+    db 1    ; day
+    db 3    ; hour
+    db 30   ; minute
+    db 0    ; second
+    db 0    ; dotw
+    dw 0    ; doty
+    db 0    ; isdst
+    ds 5, 0
     ; the rest
-    ds 192, 0
+    ds 16*3, 0
 
 SECTION "Varvara WRAM", WRAM0, ALIGN[8]
 pixel_blend:    ds 4    ; 4 blend bytes for the current blend mode
@@ -264,38 +281,6 @@ dev_system_deo2::
 ; d = device
 ; b = data
 dev_console_deo::
-    ld      a, d
-    cp      $18
-    jr      nz, .notWrite
-
-    ; write character
-    ld      a, [cursor_addr]
-    ld      h, a
-    ld      a, [cursor_addr+1]
-    ld      l, a
-
-    ; special characters
-    ld      a, b    ; value of char
-    cp      $0a     ; newline
-    jr      nz, :+
-    ld      a, l
-    and     %11100000   ; mask off fractional portion
-    ld      l, a
-    ld      de, $0020
-    add     hl, de
-    jr      .storeCursor
-:
-
-    sub     $20     ; ASCII offset
-    ld      c, 1    ; char count
-    call    LCDMemsetSmall
-
-.storeCursor
-    ld      a, h
-    ld      [cursor_addr], a
-    ld      a, l
-    ld      [cursor_addr+1], a
-.notWrite
     ret
 
 ; d = device
@@ -303,7 +288,6 @@ dev_console_deo::
 dev_console_deo2::
     ; TODO: write to console
     ret
-
 
 ; d = device
 ; bc = data

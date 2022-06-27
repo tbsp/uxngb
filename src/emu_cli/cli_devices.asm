@@ -22,6 +22,8 @@ SECTION "UXNCLI Device Defaults", ROM0
 device_defaults::
     ds 256, 0
 
+SECTION "UXNCLI WRAM", WRAM0
+cursor_addr::       ds 2
 
 SECTION "UXNCLI Vectors", ROM0
 

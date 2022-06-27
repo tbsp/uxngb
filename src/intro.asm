@@ -40,9 +40,9 @@ uxn_memory::
 zero_page::     ds 256
 page_program::
 
-SECTION "Console WRAM", WRAM0
-cursor_addr::   ds 2
+SECTION "General WRAM", WRAM0
 wPendingPalettes::  ds 16   ; one full BG and OBJ palette for CGB
+wFrameCounter::     ds 1
 
 SECTION "Intro", ROM0
 
@@ -75,6 +75,10 @@ Intro::
     ; Initialize stack pointers
     ldh     [wst_ptr], a
     ldh     [rst_ptr], a
+
+    ; Initialize frame counter (counts down 60 frames to measure a ~second)
+    ld      a, 60
+    ld      [wFrameCounter], a
 
     ; Copy entire ROM external RAM
     ; TODO: Copy in banks
