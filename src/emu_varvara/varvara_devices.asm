@@ -362,6 +362,8 @@ dev_screen_deo::
     ld      c, a        ; bc=$8000+y/8*320
 
     ld      a, [de]     ; low(x)
+    cp      160
+    jr      nc, .pixel_xOutOfRange
     srl     a           ; x/8
     srl     a
     srl     a
@@ -443,6 +445,7 @@ dev_screen_deo::
     ld      [hl], b     ; write new byte value
 
 .pixel_yOutOfRange
+.pixel_xOutOfRange
     ; auto-advance based on auto flag
     ld      a, [devices + $26]
     bit     0, a
@@ -537,7 +540,40 @@ dev_screen_deo::
     ld      a, [hli]    ; low(y)
     ldh     [working_y], a
     
-.bg_auto_loop
+    ; TODO: Make 1bpp/2bpp both copy the prepared bytes to a buffer which is then
+    ;  processed the same, and results in a prepared blob to copy to VRAM either
+    ;  aligned or unaligned as needed (handling transparency properly may complicate
+    ;  that).
+    ldh     a, [data_byte]
+    bit     7, a
+    call    z, bg_sprite_1bpp
+    ldh     a, [data_byte]
+    bit     7, a
+    call    nz, bg_sprite_2bpp
+
+    ; perform final auto adjustments
+
+    ; Note: The auto x/y functions in a somewhat unintuitive manner, but is quite clever in allowing
+    ;  automatic sprite layout over both dimensions since the opposite deltas are applied during a single
+    ;  auto write, and then applied to the named dimensions afterwards, setting up subsequent writes.
+    ld      hl, devices + $29 ; low(x)
+    ldh     a, [delta_x]
+    add     [hl]
+    ld      [hli], a
+    inc     l
+    ldh     a, [delta_y]
+    add     [hl]
+    ld      [hl], a
+
+    ret
+    
+.sprite_fg
+    ; OAM sprite
+    ; - blit to OAM tile space
+    ; - create OAM entry at x/y coords for this tile
+    ret
+
+bg_sprite_1bpp:
     ; Locate UXN addr in SRAM (TODO: Account for banks)
     ld      hl, devices + $2c   ; addr
     ld      d, [hl]
@@ -547,16 +583,86 @@ dev_screen_deo::
     add     hl, de
     ld      d, h
     ld      e, l
+    ; TODO: Handle bank spanning during tile data copy
 
     ; Copy tile bytes to WRAM buffer to simplify pointer management during blit
+    ldh     a, [data_byte]
+    and     %00110000   ; keep only flip bits
+    or      a
+    jr      z, .bg_noFlip
+    cp      %00100000   ; flipy only?
+    jr      z, .bg_flipy
+    cp      %00010000   ; flipx only?
+    jr      z, .bg_flipx
+    ; flipx & flipy
+    ld      hl, tile_buffer + $07
+    ld      c, 8
+:   
+    ld      a, [de]
+    ld      b, a
+    rlca
+    rlca
+    xor     b
+    and     $AA
+    xor     b
+    ld      b, a
+    rlca
+    rlca
+    rlca
+    rrc     b
+    xor     b
+    and     $66
+    xor     b
+    ld      [hld], a
+    inc     de
+    dec     c
+    jr      nz, :-
+
+    jr      .bg_tile_ready
+.bg_flipx
+    ; flip bit order for bytes as we copy
+    ; Based on: http://www.retroprogramming.com/2014/01/fast-z80-bit-reversal.html
+    ld      hl, tile_buffer
+    ld      c, 8
+:   ld      a, [de]
+    ld      b, a
+    rlca
+    rlca
+    xor     b
+    and     $AA
+    xor     b
+    ld      b, a
+    rlca
+    rlca
+    rlca
+    rrc     b
+    xor     b
+    and     $66
+    xor     b
+    ld      [hli], a
+    inc     de
+    dec     c
+    jr      nz, :-
+    jr      .bg_tile_ready
+.bg_flipy
+    ; Copy bytes backwards
+    ld      c, 8
+    ld      hl, tile_buffer + $07
+:   ld      a, [de]
+    ld      [hld], a
+    inc 	de
+    dec 	c
+    jr 		nz, :-
+    jr      .bg_tile_ready
+.bg_noFlip
     ld      hl, tile_buffer
     ld      c, 16
     rst     MemcpySmall
+.bg_tile_ready
 
     ldh     a, [working_y]
     cp      144
-    jp      nc, .bg_yOutOfRange
-
+    jp      nc, .yOutOfRange
     ; aligned tile address is:
     ; y/8*20*16
     srl     a   ; y/8
@@ -575,6 +681,8 @@ dev_screen_deo::
     ld      c, a        ; bc=$8000+y/8*320
 
     ldh     a, [working_x]
+    cp      160
+    jp      nc, .xOutOfRange
     srl     a           ; x/8
     srl     a
     srl     a
@@ -587,9 +695,6 @@ dev_screen_deo::
     add     hl, bc
 
     ld      de, tile_buffer
-    ldh     a, [data_byte]
-    bit     7, a    
-    jr      nz, .2bpp
 
     ; 1bpp
     ld      b, 8        ; byte counter
@@ -653,7 +758,202 @@ dev_screen_deo::
     dec     b
     jr      nz, .1bpp_v
 
-    jr      .sprite_auto
+.yOutOfRange
+.xOutOfRange
+.sprite_auto
+    ; apply auto adjustments
+    ld      hl, working_x
+    ld      a, [hli]    ; get working_x
+    add     [hl]        ; add delta_y (yes)
+    dec     l
+    ld      [hli], a    ; store new working_x
+    inc     l
+    ld      a, [hli]    ; get working_y
+    add     [hl]        ; add delta_x (yes)
+    dec     l
+    ld      [hli], a    ; store new working_y
+
+    ldh     a, [auto_addr]
+    or      a
+    jr      z, .doneAutoAddr
+    ld      hl, devices + $2c
+    ld      a, [hli]
+    ld      c, [hl]
+    ld      b, a
+    ld      a, $08  ; addr delta for 1bpp
+    add     c
+    ld      c, a
+    adc     b
+    sub     c
+    ld      b, a
+    ld      [hl], c
+    dec     l
+    ld      [hl], b
+.doneAutoAddr
+
+    ldh     a, [auto_len]
+    dec     a
+    ldh     [auto_len], a
+    jp      nz, bg_sprite_1bpp
+
+    ret
+
+
+
+
+bg_sprite_2bpp:
+
+    ; Locate UXN addr in SRAM (TODO: Account for banks)
+    ld      hl, devices + $2c   ; addr
+    ld      d, [hl]
+    inc     l
+    ld      e, [hl]
+    ld      hl, uxn_memory
+    add     hl, de
+    ld      d, h
+    ld      e, l
+
+    ; Copy tile bytes to WRAM buffer to simplify pointer management during blit
+    ldh     a, [data_byte]
+    and     %00110000   ; keep flip bits
+    or      a
+    jr      z, .bg_noFlip
+    cp      %00100000   ; flipy only?
+    jr      z, .bg_flipy
+    cp      %00010000   ; flipx only?
+    jr      z, .bg_flipx
+    ; flipx & flipy
+    ld      hl, tile_buffer + $07
+    ld      c, 8
+:   ld      a, [de]
+    ld      b, a
+    rlca
+    rlca
+    xor     b
+    and     $AA
+    xor     b
+    ld      b, a
+    rlca
+    rlca
+    rlca
+    rrc     b
+    xor     b
+    and     $66
+    xor     b
+    ld      [hld], a
+    inc     de
+    dec     c
+    jr      nz, :-
+
+    ASSERT(HIGH(tile_buffer) == HIGH(tile_buffer+$0f))
+    ld      l, LOW(tile_buffer) + $0f
+    ld      c, 8
+
+:   ld      a, [de]
+    ld      b, a
+    rlca
+    rlca
+    xor     b
+    and     $AA
+    xor     b
+    ld      b, a
+    rlca
+    rlca
+    rlca
+    rrc     b
+    xor     b
+    and     $66
+    xor     b
+    ld      [hld], a
+    inc     de
+    dec     c
+    jr      nz, :-
+
+    jr      .bg_tile_ready
+.bg_flipx
+    ; flip bit order for bytes as we copy
+    ; Based on: http://www.retroprogramming.com/2014/01/fast-z80-bit-reversal.html
+    ld      hl, tile_buffer
+    ld      c, 16
+:   ld      a, [de]
+    ld      b, a
+    rlca
+    rlca
+    xor     b
+    and     $AA
+    xor     b
+    ld      b, a
+    rlca
+    rlca
+    rlca
+    rrc     b
+    xor     b
+    and     $66
+    xor     b
+    ld      [hli], a
+    inc     de
+    dec     c
+    jr      nz, :-
+    jr      .bg_tile_ready
+.bg_flipy
+    ; Copy 8 bytes backwards twice (low and high bytes are split, UXN style)
+    ld      c, 8
+    ld      hl, tile_buffer + $07
+:   ld      a, [de]
+    ld      [hld], a
+    inc     de
+    dec     c
+    jr      nz, :-
+    ASSERT(HIGH(tile_buffer) == HIGH(tile_buffer+$0f))
+    ld      l, LOW(tile_buffer) + $0f
+    ld      c, 8
+:   ld      a, [de]
+    ld      [hld], a
+    inc     de
+    dec     c
+    jr      nz, :-
+    jr      .bg_tile_ready
+.bg_noFlip
+    ld      hl, tile_buffer
+    ld      c, 16
+    rst     MemcpySmall
+.bg_tile_ready
+
+    ldh     a, [working_y]
+    cp      144
+    jp      nc, .yOutOfRange
+    ; aligned tile address is:
+    ; y/8*20*16
+    srl     a   ; y/8
+    srl     a
+    ;srl     a
+    ;sla     a   ; double for table which stores words
+    and     %11111110
+    ld      hl, Y_TIMES_320_VRAM
+    add     l
+    ld      l, a
+    adc     h
+    sub     l
+    ld      h, a
+    ld      a, [hli]    ; y/8*320
+    ld      b, [hl]
+    ld      c, a        ; bc=$8000+y/8*320
+
+    ldh     a, [working_x]
+    cp      160
+    jp      nc, .xOutOfRange
+    srl     a           ; x/8
+    srl     a
+    srl     a
+    swap    a           ; x/8*16, overflow bit in lsb
+    ld      l, a
+    ld      h, 0
+    srl     l           ; move possible overflow bit to carry
+    rl      h           ; move possible overflow bit to H
+    sla     l           ; restore L minus bit
+    add     hl, bc
+
+    ld      de, tile_buffer
 
 .2bpp
     ld      b, 8        ; byte counter
@@ -725,7 +1025,8 @@ dev_screen_deo::
     dec     b
     jr      nz, .2bpp_v
 
-.bg_yOutOfRange
+.yOutOfRange
+.xOutOfRange
 .sprite_auto
     ; apply auto adjustments
     ld      hl, working_x
@@ -742,17 +1043,11 @@ dev_screen_deo::
     ldh     a, [auto_addr]
     or      a
     jr      z, .doneAutoAddr
-    ld      d, 8    ; addr delta for 1bpp
-    ldh     a, [data_byte]
-    bit     7, a    
-    jr      z, .autoAddr1bpp
-    sla     d       ; double addr delta for 2bpp
-.autoAddr1bpp
     ld      hl, devices + $2c
     ld      a, [hli]
     ld      c, [hl]
     ld      b, a
-    ld      a, d
+    ld      a, $10  ; addr delta for 2bpp
     add     c
     ld      c, a
     adc     b
@@ -766,29 +1061,10 @@ dev_screen_deo::
     ldh     a, [auto_len]
     dec     a
     ldh     [auto_len], a
-    jp      nz, .bg_auto_loop
-
-    ; perform final auto adjustments
-
-    ; Note: The auto x/y functions in a somewhat unintuitive manner, but is quite clever in allowing
-    ;  automatic sprite layout over both dimensions since the opposite deltas are applied during a single
-    ;  auto write, and then applied to the named dimensions afterwards, setting up subsequent writes.
-    ld      hl, devices + $29 ; low(x)
-    ldh     a, [delta_x]
-    add     [hl]
-    ld      [hli], a
-    inc     l
-    ldh     a, [delta_y]
-    add     [hl]
-    ld      [hl], a
+    jp      nz, bg_sprite_1bpp
 
     ret
-    
-.sprite_fg
-    ; OAM sprite
-    ; - blit to OAM tile space
-    ; - create OAM entry at x/y coords for this tile
-    ret
+
 
 ; d = device
 ; bc = data
