@@ -254,12 +254,6 @@ convertTwoColors:
 
     ret
 
-debug_palettes:
-    dw 0        ; black
-    dw 8935     ; green
-    dw 6879     ; orange
-    dw 32767    ; white
-
 ; d = device
 ; bc = data
 dev_system_deo2::
