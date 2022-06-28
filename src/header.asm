@@ -99,7 +99,7 @@ Reset::
     ; xor a
     ldh     [hSCY], a
     ldh     [hSCX], a
-    ld      a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9800
+    ld      a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8000 | LCDCF_BG9800 | LCDCF_OBJON | LCDCF_OBJ8
     ldh     [hLCDC], a
     ; And turn the LCD on!
     ldh     [rLCDC], a
@@ -146,7 +146,10 @@ SECTION UNION "Shadow OAM", WRAM0,ALIGN[8]
 
 wShadowOAM::
     ds NB_SPRITES * 4
-
+wOAMIndex::         ; Index of next free entry in OAM for dynamically generated objects
+    ds 1
+wOAMEndIndex::      ; Index of last enty used in the previous frame
+    ds 1
 
 ; This ensures that the stack is at the very end of WRAM
 SECTION "Stack", WRAM0[$E000 - STACK_SIZE]

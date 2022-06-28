@@ -9,6 +9,13 @@ mode_init:
     xor     a
     call    LCDMemset
 
+    ld      [wOAMIndex], a
+
+    ; Clear foreground object source address table
+    ld      hl, wObjSourceAddrs
+    ld      c, wObjSourceAddrs.end - wObjSourceAddrs
+    rst     MemsetSmall
+
     ; Setup static tilemap for background 'layer'
     ld      hl, $9800
     ld      de, SCRN_VX_B - SCRN_X_B

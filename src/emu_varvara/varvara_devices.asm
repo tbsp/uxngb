@@ -70,7 +70,11 @@ device_defaults::
 SECTION "Varvara WRAM", WRAM0, ALIGN[8]
 wPixelBlend:    ds 4    ; 4 blend bytes for the current blend mode
 wTileBuffer:    ds 16   ; buffer for tile data during blit
-wFGSprites:     ds 40*4 ; each entry: x, y, UXN tile data addr
+wSpriteTileAddr:ds 2    ; address to render sprite tile to
+
+SECTION "Varvara WRAM FG Sprites", WRAM0, ALIGN[8]
+wObjSourceAddrs::   ds 16*4 ; blend byte, source UXN address, pad
+.end::
 
 SECTION "Varvara HRAM", HRAM
 hDeviceByte:        ds 1    ; copy of the device byte for fast access
@@ -370,12 +374,7 @@ dev_screen_deo::
     ret
 
 .sprite
-    ld      a, b
-    bit     6, a
-    jp      nz, .sprite_fg
-    ; background 'sprite'
 
-.sprite_bg
     ; Get BlendingTable values for current blend value combination
     ldh     a, [hDataByte]
     and     $0f         ; only retain blend nibble
@@ -417,6 +416,13 @@ dev_screen_deo::
     sla     a
     ldh     [hDeltaY], a
 
+    ld      a, b    ; get hDataByte
+    bit     6, a
+    jp      nz, .sprite_fg
+
+.sprite_bg
+    ; background 'sprite'
+
     ; initialize working x/y coordinates
     ; TODO: Check high byte to see if we should just not render this at all
     ld      hl, devices + $29
@@ -437,10 +443,10 @@ dev_screen_deo::
     ;  that).
     ldh     a, [hDataByte]
     bit     7, a
-    call    z, bg_sprite_1bpp
+    call    z, bgSprite1bpp
     ldh     a, [hDataByte]
     bit     7, a
-    call    nz, bg_sprite_2bpp
+    call    nz, bgSprite2bpp
 
     ; perform final auto adjustments
 
@@ -459,9 +465,48 @@ dev_screen_deo::
     ret
 
 .sprite_fg
+    ; initialize working x/y coordinates
+    ; TODO: Check high byte to see if we should just not render this at all
+    ld      hl, devices + $29
+    ld      a, [hli]    ; low(x)
+    ldh     [hWorkingX], a
+    inc     l
+    ld      a, [hli]    ; low(y)
+    ldh     [hWorkingY], a
+
     ; OAM sprite
+    ; - if blend mode 0, simply clear sprite entry
     ; - blit to OAM tile space
     ; - create OAM entry at x/y coords for this tile
+
+    ; Intended approach:
+    ; - Check table to see if x/y/addr is present
+    ; - If present:
+    ;   - if color=0: clear entry
+    ;   - if color>0: update OAM entry
+    ; - If no present:
+    ;   - Render tile to sprite OAM
+    ;   - Create OAM entry at X/Y for new tile
+    ;   - Add entry to table of sprites
+
+    ldh     a, [hDataByte]
+    bit     7, a
+    call    z, fgSprite1bpp
+    ldh     a, [hDataByte]
+    bit     7, a
+    call    nz, fgSprite2bpp
+
+    ; perform final auto adjustments
+
+    ld      hl, devices + $29 ; low(x)
+    ldh     a, [hDeltaX]
+    add     [hl]
+    ld      [hli], a
+    inc     l
+    ldh     a, [hDeltaY]
+    add     [hl]
+    ld      [hl], a
+
     ret
 
 ; Draw a pixel at hPixelX/hPixelY with color based on hDataByte
@@ -571,8 +616,207 @@ pixel_draw:
 
     ret
 
+locateTargetSpriteTileVRAM:
+    ; Current approach:
+    ;  - When blend=0, return the tileID of the first entry which matches the source addr
+    ;  - The calling code will then hide the first sprite at the given x/y coordinates which
+    ;    uses that tileID
+    ;  - This will fail if the same tile is blended differently but used at the same x/y
+    ;    location, but will at least clear out the invisible sprites
 
-bg_sprite_1bpp:
+    ; First check for matching entry, while noting the low byte of the last empty entry found
+    ldh     a, [hDataByte]
+    and     $0f     ; get blend value
+    ld      b, a
+    ld      hl, devices + $2c   ; get source addr of UXN tile data
+    ld      a, [hli]
+    ld      d, a
+    ld      e, [hl]
+
+    ld      c, $ff  ; low byte of empty entry ($ff=none found)
+    ld      hl, wObjSourceAddrs
+
+:   ld      a, [hl]     ; check blend value (0=invisible, and also unused)
+    or      a
+    jr      nz, .notEmpty
+    ld      c, l        ; note low byte of empty entry in case we need it
+.notEmpty
+    ld      a, b        ; check if blend==0 (erase sprite)
+    or      a
+    jr      z, .skipBlendCheck
+    ld      a, [hl]
+    cp      b           ; compare to our target blend value
+    jr      nz, .blendDifferent
+.skipBlendCheck
+    inc     l
+    ld      a, [hli]
+    cp      d
+    jr      nz, .addrDifferent
+    ld      a, [hl]
+    cp      e
+    jr      nz, .addrDifferent
+    ; blend and addr match, use the existing VRAM entry!
+
+    ; Return tileID to use for OAM entry in A
+    ld      a, l
+    srl     a
+    srl     a
+    add     $f0 ; tileID of 0th foreground tile
+
+    ret
+
+.blendDifferent
+.addrDifferent
+    ; advance to next entry
+    ld      a, l
+    or      4-1
+    inc     a
+    ld      l, a
+    cp      LOW(wObjSourceAddrs.end)
+    jr      nz, :-
+
+    ; Reached end without finding a match!
+
+    ; Store our blend/addr values in the last empty entry
+    ld      l, c    ; low byte of last empty entry
+    ld      a, b    ; blend value
+    ld      [hli], a
+    ld      a, d
+    ld      [hli], a
+    ld      [hl], e
+
+    ; Calculate VRAM address from table low byte value
+    ld      a, c
+    sla     a
+    sla     a
+    ld      c, a
+    ld      b, 0
+    ld      hl, vForegroundTiles
+    add     hl, bc
+
+    ld      a, l
+    ld      [wSpriteTileAddr], a
+    ld      a, h
+    ld      [wSpriteTileAddr+1], a
+
+    ; return A=0 to indicate copy is required
+    xor     a
+
+    ret
+
+createOAMEntry:
+    ld      e, a    ; cache tileID
+
+    ldh     a, [hDataByte]
+    and     $0f     ; get blend value
+    jr      nz, .spriteVisible    
+    ; sprite blended to zero, locate sprite at this x/y and tileID,
+    ;  and hide it
+    ldh     a, [hWorkingY]
+    ld      b, a
+    ldh     a, [hWorkingX]
+    ld      c, a
+
+    ; TODO: Flip using hardware flipping, not tile rendering
+    ld      hl, wShadowOAM
+:   ld      a, [hli]
+    cp      b
+    jr      nz, .hideSeek
+    ld      a, [hli]
+    cp      c
+    jr      nz, .hideSeek
+    ld      a, [hl]
+    cp      e
+    jr      nz, .hideSeek
+    ; Hide this sprite!
+    dec     l
+    dec     l
+    xor     a   ; set y=0 to hide the sprite without affecting the 10spr/line limit
+    ld      [hl], a
+    jr      .resume
+.hideSeek
+    ld      a, l
+    or      4-1
+    inc     a
+    ld      l, a
+    cp      $A0     ; loop until the end of OAM
+    jr      nz, :-
+    ; Match not found, UXN software is clearing something it didn't draw,
+    ;  or our convoluted hide mechanism got confused. Reset to 0th OAM entry.
+    ld      l, 0
+    jr      .resume
+
+.spriteVisible
+    ld      hl, wOAMIndex       ; point to next unused OAM entry
+    ld      l, [hl]
+
+    ldh     a, [hWorkingY]
+    add     $10
+    ld      [hli], a
+    ldh     a, [hWorkingX]
+    add     $08
+    ld      [hli], a
+    ld      a, e
+    ld      [hli], a
+    xor     a
+    ld      [hli], a
+
+.resume
+    ld      a, l
+    ld      [wOAMIndex], a   ; update next unused OAM entry index
+
+    ; Ensure OAM DMA occurs
+    ld      a, HIGH(wShadowOAM)
+    ldh     [hOAMHigh], a
+    
+    ret
+
+fgSprite1bpp:
+    call    locateTargetSpriteTileVRAM
+    or      a
+    jr      nz, .createOAMEntry
+
+    call    tileToBuffer1bpp
+    ld      a, [wSpriteTileAddr]
+    ld      l, a
+    ld      a, [wSpriteTileAddr+1]
+    ld      h, a
+    call    render1bppTile
+
+.createOAMEntry
+    call    createOAMEntry
+
+    ld      d, 8    ; 8 byte offset between 1bpp tiles
+    call    applyAutoAdjustments
+    jp      nz, fgSprite1bpp
+
+    ret
+
+
+fgSprite2bpp:
+    call    locateTargetSpriteTileVRAM
+    or      a
+    jr      nz, .createOAMEntry
+
+    call    tileToBuffer2bpp
+    ld      a, [wSpriteTileAddr]
+    ld      l, a
+    ld      a, [wSpriteTileAddr+1]
+    ld      h, a
+    call    render2bppTile
+
+.createOAMEntry
+    call    createOAMEntry
+
+    ld      d, 16
+    call    applyAutoAdjustments
+    jp      nz, fgSprite2bpp
+
+    ret
+
+
+; Copy a 1bpp UXN tile pointed to by Screen.addr to the wTileBuffer, including flips
+tileToBuffer1bpp:
     ; Locate UXN addr in SRAM (TODO: Account for banks)
     ld      hl, devices + $2c   ; addr
     ld      d, [hl]
@@ -588,16 +832,15 @@ bg_sprite_1bpp:
     ldh     a, [hDataByte]
     and     %00110000   ; keep only flip bits
     or      a
-    jr      z, .bg_noFlip
+    jr      z, .noFlip
     cp      %00100000   ; flipy only?
-    jr      z, .bg_flipy
+    jr      z, .flipy
     cp      %00010000   ; flipx only?
-    jr      z, .bg_flipx
+    jr      z, .flipx
     ; flipx & flipy
     ld      hl, wTileBuffer + $07
     ld      c, 8
-:   
-    ld      a, [de]
+:   ld      a, [de]
     ld      b, a
     rlca
     rlca
@@ -617,8 +860,8 @@ bg_sprite_1bpp:
     dec     c
     jr      nz, :-
 
-    jr      .bg_tile_ready
-.bg_flipx
+    jr      .tile_ready
+.flipx
     ; flip bit order for bytes as we copy
     ; Based on: http://www.retroprogramming.com/2014/01/fast-z80-bit-reversal.html
     ld      hl, wTileBuffer
@@ -642,8 +885,8 @@ bg_sprite_1bpp:
     inc     de
     dec     c
     jr      nz, :-
-    jr      .bg_tile_ready
-.bg_flipy
+    jr      .tile_ready
+.flipy
     ; Copy bytes backwards
     ld      c, 8
     ld      hl, wTileBuffer + $07
@@ -652,12 +895,83 @@ bg_sprite_1bpp:
     inc 	de
     dec 	c
     jr 		nz, :-
-    jr      .bg_tile_ready
-.bg_noFlip
+    jr      .tile_ready
+.noFlip
     ld      hl, wTileBuffer
     ld      c, 16
     rst     MemcpySmall
-.bg_tile_ready
+.tile_ready
+
+    ret
+
+; Render a 1bpp tile from wTileBuffer to HL (tile VRAM)
+render1bppTile:
+    ld      de, wTileBuffer
+    ld      b, 8        ; byte counter
+.vLoop
+    ld      a, [de]     ; setup working bytes for this 8-pixel row
+    inc     de
+    ldh     [hWorkingBytes], a
+    xor     a           ; high byte is always zero for 1bpp
+    ldh     [hWorkingBytes+1], a
+
+    push    hl
+
+    ld      c, 8        ; bit counter
+.bitLoop
+    push    bc
+    ldh     a, [hWorkingBytes]
+    ld      b, a
+    ldh     a, [hWorkingBytes+1]
+    ld      c, a
+
+    xor     a
+    sla     c           ; shift high bit into carry
+    rl      a           ; shift carry into A
+    sla     b           ; shift low bit into carry
+    rl      a           ; shift carry into A (now 'ch' 0-3 for a given pixel)
+
+    ld      h, HIGH(wPixelBlend)
+    ld      l, a
+    ld      h, [hl]     ; H = blended pixel value (0-3)
+
+    ldh     a, [hWorkingBytes]
+    rr      h           ; shift low bit into carry
+    rl      a           ; shift low bit into low working byte
+    ldh     [hWorkingBytes], a
+    ldh     a, [hWorkingBytes+1]
+    rr      h           ; shift high bit into carry
+    rl      a           ; shift high bit into high working byte
+    ldh     [hWorkingBytes+1], a
+
+    pop     bc
+    dec     c
+    jr      nz, .bitLoop
+    
+    pop     hl
+
+    ; working byte is now ready, copy to VRAM
+:   ldh     a, [rSTAT]
+    and     STATF_BUSY
+    jr      nz, :-
+    ldh     a, [hWorkingBytes]
+    ld      [hli], a
+    ; In some cases (hello-pong) we seem to regularly hit inaccessible VRAM here right after the
+    ;  STAT interrupt for the tile bank swap, so be super careful instead.
+:   ldh     a, [rSTAT]
+    and     STATF_BUSY
+    jr      nz, :-
+    ldh     a, [hWorkingBytes+1]
+    ld      [hli], a
+
+    dec     b
+    jr      nz, .vLoop
+
+    ret
+
+
+bgSprite1bpp:
+    call    tileToBuffer1bpp
 
     ldh     a, [hSpriteUnaligned]
     or      a
@@ -726,7 +1040,7 @@ bg_sprite_1bpp:
 
     dec     b
     jr      nz, .1bppU_v
-    jr      .sprite_auto
+    jr      .autoAdvance
 
 .aligned
     ; Locate target tile VRAM address
@@ -765,73 +1079,21 @@ bg_sprite_1bpp:
     sla     l           ; restore L minus bit
     add     hl, bc
 
-    ld      de, wTileBuffer
-
-    ; 1bpp
-    ld      b, 8        ; byte counter
-.1bpp_v
-
-    ld      a, [de]     ; setup working bytes for this 8-pixel row
-    inc     de
-    ldh     [hWorkingBytes], a
-    xor     a           ; high byte is always zero for 1bpp
-    ldh     [hWorkingBytes+1], a
-
-    push    hl
-
-    ld      c, 8        ; bit counter
-.1bpp_bit
-    push    bc
-    ldh     a, [hWorkingBytes]
-    ld      b, a
-    ldh     a, [hWorkingBytes+1]
-    ld      c, a
-
-    xor     a
-    sla     c           ; shift high bit into carry
-    rl      a           ; shift carry into A
-    sla     b           ; shift low bit into carry
-    rl      a           ; shift carry into A (now 'ch' 0-3 for a given pixel)
-
-    ld      h, HIGH(wPixelBlend)
-    ld      l, a
-    ld      h, [hl]     ; H = blended pixel value (0-3)
-
-    ldh     a, [hWorkingBytes]
-    rr      h           ; shift low bit into carry
-    rl      a           ; shift low bit into low working byte
-    ldh     [hWorkingBytes], a
-    ldh     a, [hWorkingBytes+1]
-    rr      h           ; shift high bit into carry
-    rl      a           ; shift high bit into high working byte
-    ldh     [hWorkingBytes+1], a
-
-    pop     bc
-    dec     c
-    jr      nz, .1bpp_bit
-    
-    pop     hl
-
-    ; working byte is now ready, copy to VRAM
-:   ldh     a, [rSTAT]
-    and     STATF_BUSY
-    jr      nz, :-
-    ldh     a, [hWorkingBytes]
-    ld      [hli], a
-    ; In some cases (hello-pong) we seem to regularly hit inaccessible VRAM here right after the
-    ;  STAT interrupt for the tile bank swap, so be super careful instead.
-:   ldh     a, [rSTAT]
-    and     STATF_BUSY
-    jr      nz, :-
-    ldh     a, [hWorkingBytes+1]
-    ld      [hli], a
-
-    dec     b
-    jr      nz, .1bpp_v
+    call    render1bppTile
 
 .yOutOfRange
 .xOutOfRange
-.sprite_auto
+.autoAdvance
+
+    ld      d, 8    ; 8 byte offset between 1bpp tiles
+    call    applyAutoAdjustments
+    jp      nz, bgSprite1bpp
+
+    ret
+
+; Apply auto x/y/addr:
+; Args: D is addr delta to apply in bytes
+applyAutoAdjustments:
     ; apply auto adjustments
     ld      hl, hWorkingX
     ld      a, [hli]    ; get hWorkingX
@@ -851,7 +1113,7 @@ bg_sprite_1bpp:
     ld      a, [hli]
     ld      c, [hl]
     ld      b, a
-    ld      a, $08  ; addr delta for 1bpp
+    ld      a, d
     add     c
     ld      c, a
     adc     b
@@ -865,14 +1127,11 @@ bg_sprite_1bpp:
     ldh     a, [hAutoLen]
     dec     a
     ldh     [hAutoLen], a
-    jp      nz, bg_sprite_1bpp
 
     ret
 
-
-
-
-bg_sprite_2bpp:
+; Copy a 2bpp UXN tile pointed to by Screen.addr to the wTileBuffer, including flips
+tileToBuffer2bpp:
 
     ; Locate UXN addr in SRAM (TODO: Account for banks)
     ld      hl, devices + $2c   ; addr
@@ -888,11 +1147,11 @@ bg_sprite_2bpp:
     ldh     a, [hDataByte]
     and     %00110000   ; keep flip bits
     or      a
-    jr      z, .bg_noFlip
+    jr      z, .noFlip
     cp      %00100000   ; flipy only?
-    jr      z, .bg_flipy
+    jr      z, .flipy
     cp      %00010000   ; flipx only?
-    jr      z, .bg_flipx
+    jr      z, .flipx
     ; flipx & flipy
     ld      hl, wTileBuffer + $07
     ld      c, 8
@@ -940,8 +1199,8 @@ bg_sprite_2bpp:
     dec     c
     jr      nz, :-
 
-    jr      .bg_tile_ready
-.bg_flipx
+    jr      .tile_ready
+.flipx
     ; flip bit order for bytes as we copy
     ; Based on: http://www.retroprogramming.com/2014/01/fast-z80-bit-reversal.html
     ld      hl, wTileBuffer
@@ -965,8 +1224,8 @@ bg_sprite_2bpp:
     inc     de
     dec     c
     jr      nz, :-
-    jr      .bg_tile_ready
-.bg_flipy
+    jr      .tile_ready
+.flipy
     ; Copy 8 bytes backwards twice (low and high bytes are split, UXN style)
     ld      c, 8
     ld      hl, wTileBuffer + $07
@@ -983,12 +1242,90 @@ bg_sprite_2bpp:
     inc     de
     dec     c
     jr      nz, :-
-    jr      .bg_tile_ready
-.bg_noFlip
+    jr      .tile_ready
+.noFlip
     ld      hl, wTileBuffer
     ld      c, 16
     rst     MemcpySmall
-.bg_tile_ready
+.tile_ready
+
+    ret
+
+; Render a 2bpp tile from DE (wTileBuffer) to HL (tile VRAM)
+render2bppTile:
+    ld      de, wTileBuffer
+    ld      b, 8        ; byte counter
+.vLoop
+
+    push    hl
+
+    ld      a, [de]     ; setup working bytes for this 8-pixel row
+    ld      hl, $0008   ; UXN tile data isn't interlaced like GB, so we have to span 8 bytes
+    add     hl, de
+    ldh     [hWorkingBytes], a
+    ld      a, [hl]
+    ld      de, -$0007  ; setup for next 2bpp byte
+    add     hl, de
+    ld      d, h
+    ld      e, l
+    ldh     [hWorkingBytes+1], a
+
+    ; Note: The bit loop is currently the same for 1bpp and 2bpp once the hWorkingBytes are loaded
+
+    ld      c, 8        ; bit counter
+.bitLoop
+    push    bc
+    ldh     a, [hWorkingBytes]
+    ld      b, a
+    ldh     a, [hWorkingBytes+1]
+    ld      c, a
+
+    xor     a
+    sla     c           ; shift high bit into carry
+    rl      a           ; shift carry into A
+    sla     b           ; shift low bit into carry
+    rl      a           ; shift carry into A (now 'ch' 0-3 for a given pixel)
+
+    ld      h, HIGH(wPixelBlend)
+    ld      l, a
+    ld      h, [hl]     ; A = blended pixel value (0-3)
+
+    ldh     a, [hWorkingBytes]
+    rr      h           ; shift low bit into carry
+    rl      a           ; shift low bit into low working byte
+    ldh     [hWorkingBytes], a
+    ldh     a, [hWorkingBytes+1]
+    rr      h           ; shift high bit into carry
+    rl      a           ; shift high bit into high working byte
+    ldh     [hWorkingBytes+1], a
+
+    pop     bc
+    dec     c
+    jr      nz, .bitLoop
+    
+    pop     hl
+
+    ; working byte is now ready, copy to VRAM
+:   ldh     a, [rSTAT]
+    and     STATF_BUSY
+    jr      nz, :-
+    ldh     a, [hWorkingBytes]
+    ld      [hli], a
+    ; In some cases (hello-pong) we seem to regularly hit inaccessible VRAM here right after the
+    ;  STAT interrupt for the tile bank swap, so be super careful instead.
+:   ldh     a, [rSTAT]
+    and     STATF_BUSY
+    jr      nz, :-
+    ldh     a, [hWorkingBytes+1]
+    ld      [hli], a
+
+    dec     b
+    jr      nz, .vLoop
+
+    ret
+
+bgSprite2bpp:
+    call    tileToBuffer2bpp
 
     ldh     a, [hSpriteUnaligned]
     or      a
@@ -1063,7 +1400,7 @@ bg_sprite_2bpp:
 
     dec     b
     jr      nz, .2bppU_v
-    jp      .sprite_auto
+    jp      .autoAdvance
 
 .aligned
     ; Locate target tile VRAM address
@@ -1102,115 +1439,15 @@ bg_sprite_2bpp:
     sla     l           ; restore L minus bit
     add     hl, bc
 
-    ld      de, wTileBuffer
-
-.2bpp
-    ld      b, 8        ; byte counter
-.2bpp_v
-
-    push    hl
-
-    ld      a, [de]     ; setup working bytes for this 8-pixel row
-    ld      hl, $0008   ; UXN tile data isn't interlaced like GB, so we have to span 8 bytes
-    add     hl, de
-    ldh     [hWorkingBytes], a
-    ld      a, [hl]
-    ld      de, -$0007  ; setup for next 2bpp byte
-    add     hl, de
-    ld      d, h
-    ld      e, l
-    ldh     [hWorkingBytes+1], a
-
-    ; Note: The bit loop is currently the same for 1bpp and 2bpp once the hWorkingBytes are loaded
-
-    ld      c, 8        ; bit counter
-.2bpp_bit
-    push    bc
-    ldh     a, [hWorkingBytes]
-    ld      b, a
-    ldh     a, [hWorkingBytes+1]
-    ld      c, a
-
-    xor     a
-    sla     c           ; shift high bit into carry
-    rl      a           ; shift carry into A
-    sla     b           ; shift low bit into carry
-    rl      a           ; shift carry into A (now 'ch' 0-3 for a given pixel)
-
-    ld      h, HIGH(wPixelBlend)
-    ld      l, a
-    ld      h, [hl]     ; A = blended pixel value (0-3)
-
-    ldh     a, [hWorkingBytes]
-    rr      h           ; shift low bit into carry
-    rl      a           ; shift low bit into low working byte
-    ldh     [hWorkingBytes], a
-    ldh     a, [hWorkingBytes+1]
-    rr      h           ; shift high bit into carry
-    rl      a           ; shift high bit into high working byte
-    ldh     [hWorkingBytes+1], a
-
-
-    pop     bc
-    dec     c
-    jr      nz, .2bpp_bit
-    
-    pop     hl
-
-    ; working byte is now ready, copy to VRAM
-:   ldh     a, [rSTAT]
-    and     STATF_BUSY
-    jr      nz, :-
-    ldh     a, [hWorkingBytes]
-    ld      [hli], a
-    ; In some cases (hello-pong) we seem to regularly hit inaccessible VRAM here right after the
-    ;  STAT interrupt for the tile bank swap, so be super careful instead.
-:   ldh     a, [rSTAT]
-    and     STATF_BUSY
-    jr      nz, :-
-    ldh     a, [hWorkingBytes+1]
-    ld      [hli], a
-
-    dec     b
-    jr      nz, .2bpp_v
+    call    render2bppTile
 
 .yOutOfRange
 .xOutOfRange
-.sprite_auto
-    ; apply auto adjustments
-    ld      hl, hWorkingX
-    ld      a, [hli]    ; get hWorkingX
-    add     [hl]        ; add hDeltaY (yes)
-    dec     l
-    ld      [hli], a    ; store new hWorkingX
-    inc     l
-    ld      a, [hli]    ; get hWorkingY
-    add     [hl]        ; add hDeltaX (yes)
-    dec     l
-    ld      [hli], a    ; store new hWorkingY
+.autoAdvance
 
-    ldh     a, [hAutoAddr]
-    or      a
-    jr      z, .doneAutoAddr
-    ld      hl, devices + $2c   ; addr
-    ld      a, [hli]
-    ld      c, [hl]
-    ld      b, a
-    ld      a, $10  ; addr delta for 2bpp
-    add     c
-    ld      c, a
-    adc     b
-    sub     c
-    ld      b, a
-    ld      [hl], c
-    dec     l
-    ld      [hl], b
-.doneAutoAddr
-
-    ldh     a, [hAutoLen]
-    dec     a
-    ldh     [hAutoLen], a
-    jp      nz, bg_sprite_2bpp
+    ld      d, 16    ; 16 byte offset between 2bpp tiles
+    call    applyAutoAdjustments
+    jp      nz, bgSprite2bpp
 
     ret
 
@@ -1261,3 +1498,14 @@ PixelBlendingTable:
 
 ; OpaqueTable:
 ;     db 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0
+
+SECTION "Foreground Tiles", VRAM[$8000]
+
+vBackgroundTilesPrimary:
+    ds 16*240
+
+vForegroundTiles:
+    ds 16*24
+
+vBackgroundTilesSecondary:
+    ds 16*120

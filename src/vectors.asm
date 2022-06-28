@@ -119,7 +119,7 @@ SECTION "Handlers", ROM0[$40]
 ; Note: Occasionally we hit inaccessible VRAM issues on line 96 because of this...
 ;  We might have to assume only one safe write per STAT check
     push	af
-    ld	    a, LCDCF_ON | LCDCF_BG8800 | LCDCF_BG9800 | LCDCF_BGON
+    ld	    a, LCDCF_ON | LCDCF_BG8800 | LCDCF_BG9800 | LCDCF_BGON | LCDCF_OBJON | LCDCF_OBJ8
     ldh	    [rLCDC], a
     pop	    af
     reti
