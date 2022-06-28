@@ -87,6 +87,10 @@ Reset::
     ldh     [hHeldKeys], a
     ldh     [hPriorKeys], a
 
+    ; Initialize frame counter (counts down 60 frames to measure a ~second)
+    ld      a, 60
+    ld      [wFrameCounter], a
+
     ; Select wanted interrupts here
     ; You can also enable them later if you want
     ld      a, IEF_VBLANK | IEF_LCDC

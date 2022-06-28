@@ -76,10 +76,6 @@ Intro::
     ldh     [wst_ptr], a
     ldh     [rst_ptr], a
 
-    ; Initialize frame counter (counts down 60 frames to measure a ~second)
-    ld      a, 60
-    ld      [wFrameCounter], a
-
     ; Copy entire ROM external RAM
     ; TODO: Copy in banks
     ld      de, staticROM

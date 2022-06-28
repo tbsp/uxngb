@@ -1078,19 +1078,24 @@ render1bppTile:
     
     pop     hl
 
+    ; Try to be as fast as possible with VRAM writes due to DMG issues with STAT interrupt
+    ldh     a, [hWorkingBytes]
+    ld      c, a
+
     ; working byte is now ready, copy to VRAM
 :   ldh     a, [rSTAT]
     and     STATF_BUSY
     jr      nz, :-
-    ldh     a, [hWorkingBytes]
-    ld      [hli], a
-    ; In some cases (hello-pong) we seem to regularly hit inaccessible VRAM here right after the
-    ;  STAT interrupt for the tile bank swap, so be super careful instead.
+    ld      [hl], c
+    inc     l
+    ldh     a, [hWorkingBytes+1]
+    ld      c, a
+
 :   ldh     a, [rSTAT]
     and     STATF_BUSY
     jr      nz, :-
-    ldh     a, [hWorkingBytes+1]
-    ld      [hli], a
+    ld      [hl], c
+    inc     l
 
     dec     b
     jr      nz, .vLoop

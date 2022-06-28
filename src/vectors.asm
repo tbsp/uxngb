@@ -116,17 +116,21 @@ SECTION "Handlers", ROM0[$40]
     ds      $48 - @
 
 ; STAT handler (only used by varvara, but included here for performance reasons)
-; Note: Occasionally we hit inaccessible VRAM issues on line 96 because of this...
-;  We might have to assume only one safe write per STAT check
     push	af
     ld	    a, LCDCF_ON | LCDCF_BG8800 | LCDCF_BG9800 | LCDCF_BGON | LCDCF_OBJON | LCDCF_OBJ8
     ldh	    [rLCDC], a
+
+    ; Ensure VRAM is writeable when we return from this handler, as DMG runs into issues otherwise
+:   ldh     a, [rSTAT]
+    and     STATF_BUSY
+    jr      nz, :-
+
     pop	    af
     reti
-    ds      $50 - @
+    ;ds      $50 - @
 
 ; Timer handler
-    rst     $38
+    ;rst     $38
     ds      $58 - @
 
 ; Serial handler
