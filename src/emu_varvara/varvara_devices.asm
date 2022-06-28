@@ -70,6 +70,7 @@ device_defaults::
 SECTION "Varvara WRAM", WRAM0, ALIGN[8]
 wPixelBlend:    ds 4    ; 4 blend bytes for the current blend mode
 wTileBuffer:    ds 16   ; buffer for tile data during blit
+wSpriteTileID:  ds 1    ; tileID to use for sprite
 wSpriteTileAddr:ds 2    ; address to render sprite tile to
 
 SECTION "Varvara WRAM FG Sprites", WRAM0, ALIGN[8]
@@ -309,7 +310,6 @@ dev_screen_dei2::
 ; b = data
 dev_screen_deo::
     ld      a, b
-    ;inc     a
     ldh     [hDataByte], a
     ; Determine operation
     ld      a, d
@@ -474,21 +474,6 @@ dev_screen_deo::
     ld      a, [hli]    ; low(y)
     ldh     [hWorkingY], a
 
-    ; OAM sprite
-    ; - if blend mode 0, simply clear sprite entry
-    ; - blit to OAM tile space
-    ; - create OAM entry at x/y coords for this tile
-
-    ; Intended approach:
-    ; - Check table to see if x/y/addr is present
-    ; - If present:
-    ;   - if color=0: clear entry
-    ;   - if color>0: update OAM entry
-    ; - If no present:
-    ;   - Render tile to sprite OAM
-    ;   - Create OAM entry at X/Y for new tile
-    ;   - Add entry to table of sprites
-
     ldh     a, [hDataByte]
     bit     7, a
     call    z, fgSprite1bpp
@@ -617,7 +602,7 @@ pixel_draw:
     ret
 
 locateTargetSpriteTileVRAM:
-    ; Current approach:
+    ; Current sprite hiding approach:
     ;  - When blend=0, return the tileID of the first entry which matches the source addr
     ;  - The calling code will then hide the first sprite at the given x/y coordinates which
     ;    uses that tileID
@@ -626,7 +611,7 @@ locateTargetSpriteTileVRAM:
 
     ; First check for matching entry, while noting the low byte of the last empty entry found
     ldh     a, [hDataByte]
-    and     $0f     ; get blend value
+    and     %10001111     ; only keep the bits that affect tile uniqueness
     ld      b, a
     ld      hl, devices + $2c   ; get source addr of UXN tile data
     ld      a, [hli]
@@ -677,6 +662,15 @@ locateTargetSpriteTileVRAM:
 
     ; Reached end without finding a match!
 
+;     ; Check if we found an empty entry
+;     ld      a, c
+;     inc     a
+;     jr      nz, .emptyFound
+;     ; No empty entry found, we've run out of foreground sprite tile VRAM slots!
+;     ; For now just keep using the last entry
+;     ld      c, LOW(wObjSourceAddrs.end) - 4
+; .emptyFound
+
     ; Store our blend/addr values in the last empty entry
     ld      l, c    ; low byte of last empty entry
     ld      a, b    ; blend value
@@ -684,6 +678,23 @@ locateTargetSpriteTileVRAM:
     ld      a, d
     ld      [hli], a
     ld      [hl], e
+
+    ; To allow entry reuse, also clear out the next entry!
+    ; Note: This likely has negative effects on locating old entries for sprite
+    ;  hiding, but the overall benefits seem to outweigh that
+    ld      a, l
+    sub     6
+    and     %00111111   ; constrain to 64 byte table
+    ld      l, a
+    xor     a
+    ld      [hl], a
+
+    ; Calcualte tileID from table low byte value
+    ld      a, c
+    sra     a
+    sra     a
+    add     $F0
+    ld      [wSpriteTileID], a
 
     ; Calculate VRAM address from table low byte value
     ld      a, c
@@ -708,8 +719,8 @@ createOAMEntry:
     ld      e, a    ; cache tileID
 
     ldh     a, [hDataByte]
-    and     $0f     ; get blend value
-    jr      nz, .spriteVisible    
+    and     $0f     ; get blend value, 0=hidden
+    jr      nz, .spriteVisible
     ; sprite blended to zero, locate sprite at this x/y and tileID,
     ;  and hide it
     ldh     a, [hWorkingY]
@@ -717,7 +728,6 @@ createOAMEntry:
     ldh     a, [hWorkingX]
     ld      c, a
 
-    ; TODO: Flip using hardware flipping, not tile rendering
     ld      hl, wShadowOAM
 :   ld      a, [hli]
     cp      b
@@ -758,7 +768,9 @@ createOAMEntry:
     ld      [hli], a
     ld      a, e
     ld      [hli], a
-    xor     a
+    ldh     a, [hDataByte]      ; apply tile flips to hardware object
+    and     %00110000           ; only retain flip bits
+    sla     a                   ; UXN flip bits are shifted one over from GB
     ld      [hli], a
 
 .resume
@@ -772,20 +784,29 @@ createOAMEntry:
     ret
 
 fgSprite1bpp:
+    ldh     a, [hWorkingX]
+    cp      160
+    jr      nc, .outOfRange
+    ldh     a, [hWorkingY]
+    cp      144
+    jr      nc, .outOfRange
+
     call    locateTargetSpriteTileVRAM
     or      a
     jr      nz, .createOAMEntry
 
+    ld      b, 0    ; disable software flipping of tiles
     call    tileToBuffer1bpp
     ld      a, [wSpriteTileAddr]
     ld      l, a
     ld      a, [wSpriteTileAddr+1]
     ld      h, a
     call    render1bppTile
-
+    ld      a, [wSpriteTileID]
 .createOAMEntry
     call    createOAMEntry
 
+.outOfRange
     ld      d, 8    ; 8 byte offset between 1bpp tiles
     call    applyAutoAdjustments
     jp      nz, fgSprite1bpp
@@ -794,20 +815,29 @@ fgSprite1bpp:
 
 
 fgSprite2bpp:
+    ldh     a, [hWorkingX]
+    cp      160
+    jr      nc, .outOfRange
+    ldh     a, [hWorkingY]
+    cp      144
+    jr      nc, .outOfRange
+
     call    locateTargetSpriteTileVRAM
     or      a
     jr      nz, .createOAMEntry
 
+    ld      b, 0    ; disable software flipping of tiles
     call    tileToBuffer2bpp
     ld      a, [wSpriteTileAddr]
     ld      l, a
     ld      a, [wSpriteTileAddr+1]
     ld      h, a
     call    render2bppTile
-
+    ld      a, [wSpriteTileID]
 .createOAMEntry
     call    createOAMEntry
 
+.outOfRange
     ld      d, 16
     call    applyAutoAdjustments
     jp      nz, fgSprite2bpp
@@ -816,6 +846,8 @@ fgSprite2bpp:
 
 
 ; Copy a 1bpp UXN tile pointed to by Screen.addr to the wTileBuffer, including flips
+; Args: B contains the data byte (passed to allow foreground sprites to bypaass
+;       software tile flipping)
 tileToBuffer1bpp:
     ; Locate UXN addr in SRAM (TODO: Account for banks)
     ld      hl, devices + $2c   ; addr
@@ -829,7 +861,7 @@ tileToBuffer1bpp:
     ; TODO: Handle bank spanning during tile data copy
 
     ; Copy tile bytes to WRAM buffer to simplify pointer management during blit
-    ldh     a, [hDataByte]
+    ld      a, b
     and     %00110000   ; keep only flip bits
     or      a
     jr      z, .noFlip
@@ -971,6 +1003,8 @@ render1bppTile:
 
 
 bgSprite1bpp:
+    ldh     a, [hDataByte]
+    ld      b, a
     call    tileToBuffer1bpp
 
     ldh     a, [hSpriteUnaligned]
@@ -1131,6 +1165,8 @@ applyAutoAdjustments:
     ret
 
 ; Copy a 2bpp UXN tile pointed to by Screen.addr to the wTileBuffer, including flips
+; Args: B contains the data byte (passed to allow foreground sprites to bypaass
+;       software tile flipping)
 tileToBuffer2bpp:
 
     ; Locate UXN addr in SRAM (TODO: Account for banks)
@@ -1144,7 +1180,7 @@ tileToBuffer2bpp:
     ld      e, l
 
     ; Copy tile bytes to WRAM buffer to simplify pointer management during blit
-    ldh     a, [hDataByte]
+    ld      a, b
     and     %00110000   ; keep flip bits
     or      a
     jr      z, .noFlip
@@ -1325,6 +1361,8 @@ render2bppTile:
     ret
 
 bgSprite2bpp:
+    ldh     a, [hDataByte]
+    ld      b, a
     call    tileToBuffer2bpp
 
     ldh     a, [hSpriteUnaligned]
