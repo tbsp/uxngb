@@ -1,4 +1,10 @@
 
+; I've attempted a rough RGB->Intensity conversion, tuned to values
+;  which look good for screen.tal, but in other cases the result is not
+;  very desireable, so for now it's disabled. I'm not sure if the solution
+;  is just a different table of values, or an entirely different approach.
+DEF ENABLE_DMG_PALETTES     EQU 0
+
 SECTION "Device Handlers", ROM0, ALIGN[7]
 device_handlers::
     dw dev_system_dei, dev_system_dei2, dev_system_deo, dev_system_deo2 ; system
@@ -175,6 +181,10 @@ dev_system_deo::
 
     ret
 
+IF ENABLE_DMG_PALETTES
+    include "res/dmg_palette_lookup_generated.asm"
+ENDC
+
 ; Convert the color values stored in the system device to a host-compatible palette
 ;  and then queue up a palette update for the next VBlank
 updatePalette:
@@ -183,11 +193,18 @@ updatePalette:
     or      a
     jr      z, .gbc
 
+IF ENABLE_DMG_PALETTES
     ; For DMG convert the RGB to a 2 bit value
     ; Input: 4bit RGB for each of 4 channels, stored in 6 bytes
     ; Output: 2bit brightness value for each of 4 channels
-
-    ; TODO: Set hOBP0 and hBGP directly
+    ld      hl, devices + $08 + 1
+    call    convertTwoShades
+    call    convertTwoShades
+    
+    ld      a, c
+    ldh     [rBGP], a
+    ldh     [rOBP0], a
+ENDC
 
     ret
 .gbc
@@ -203,6 +220,85 @@ updatePalette:
     ldh     [hPalettePending], a
 .done
     ret
+
+IF ENABLE_DMG_PALETTES
+convertTwoShades:
+    ; color 0
+    ld      a, [hli]    ; red
+    inc     l
+    and     %00001100
+    sla     a
+    sla     a
+    ld      b, a
+    ld      a, [hli]    ; green
+    inc     l
+    and     %00001100
+    or      b
+    ld      b, a
+    ld      a, [hld]    ; blue
+    dec     l
+    dec     l
+    dec     l
+    and     %00001100
+    srl     a
+    srl     a
+    or      b
+    ; Now we have this color in the form: %00rrggbb
+    push    hl
+    ld      hl, DMGPaletteLookup
+    add     l       ; offset to table value for this RGB value
+    ld      l, a
+    adc     h
+    sub     l
+    ld      h, a
+    ld      a, [hl]
+    pop     hl
+
+    rrca            ; shift intensity bits into final palette in C
+    rl      c
+    rrca
+    rl      c
+
+    ; color 1
+    ld      a, [hli]    ; red
+    inc     l
+    and     %11000000
+    ld      b, a
+    ld      a, [hli]    ; green
+    inc     l
+    and     %11000000
+    srl     a
+    srl     a
+    or      b
+    ld      b, a
+    ld      a, [hld]    ; blue
+    dec     l
+    dec     l
+    dec     l
+    dec     l
+    and     %11000000
+    swap    a
+    or      b
+    srl     a
+    srl     a
+    ; Now we have this color in the form: %00rrggbb
+    push    hl
+    ld      hl, DMGPaletteLookup
+    add     l       ; offset to table value for this RGB value
+    ld      l, a
+    adc     h
+    sub     l
+    ld      h, a
+    ld      a, [hl]
+    pop     hl
+
+    rrca            ; shift intensity bits into final palette in C
+    rl      c
+    rrca
+    rl      c
+
+    ret
+ENDC
 
 convertTwoColors:
     ; color 0
