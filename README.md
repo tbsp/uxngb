@@ -29,7 +29,7 @@ rgbfix -O -v -p 0xFF -t dvd uxnemu_dvd.gbc
 
 ## Implemented
 
-- 253 uxn CPU instructions
+- All 253 uxn CPU instructions
 - Controller device
 - Screen device:
   - Background pixel drawing
@@ -48,5 +48,5 @@ rgbfix -O -v -p 0xFF -t dvd uxnemu_dvd.gbc
 - Foreground pixel drawing operations aren't currently supported
 - Certain blending combinations may not render correctly, and the opaque lookup is not applied
 - Stack over/underflow and divide-by-zero are not detected
-- No audio/midi/file device support
+- No keyboard/mouse/audio/midi/file device support
 - No support for relocatable stacks (seen in uxn11)
