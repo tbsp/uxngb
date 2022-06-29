@@ -19,6 +19,7 @@ You can download a binary build [here](https://github.com/tbsp/uxngb/releases). 
 ![uxnemu_screen](https://user-images.githubusercontent.com/10489588/176349485-183ba2f7-24dc-4623-a9db-0d9f5aadd741.png)
 <img src="https://user-images.githubusercontent.com/10489588/176512446-a56458a1-e4e2-4738-bc46-b3b9ff319f38.jpg" height=144/>
 <img src="https://user-images.githubusercontent.com/10489588/176512460-f86e0335-e4d8-421b-b7cf-72347bd1a8f6.jpg" height=144/>
+<img src="https://user-images.githubusercontent.com/10489588/176514430-42b9c1a9-9300-426d-8f34-63fab83205fa.jpg" height=144/>
 
 ## Performance
 
@@ -55,3 +56,10 @@ rgbfix -O -v -p 0xFF -t dvd uxnemu_dvd.gbc
 - Stack over/underflow and divide-by-zero are not detected
 - No keyboard/mouse/audio/midi/file device support
 - No support for relocatable stacks (seen in uxn11)
+
+## Tools Used for Development
+
+- RGBDS (https://rgbds.gbdev.io/)
+- Emulicious (https://emulicious.net/)
+- uxn32 (https://github.com/randrew/uxn32)
+- Visual Studio Code (https://code.visualstudio.com/)
