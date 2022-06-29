@@ -6,6 +6,16 @@ No effort has gone into optimizing for performance, aside from trying to avoid w
 
 You can download a binary build [here](https://github.com/tbsp/uxngb/releases). Binaries with a variety of UXN ROMs appended are also available there.
 
+## Screenshots
+
+![uxnemu_catclock](https://user-images.githubusercontent.com/10489588/176349457-68669912-c901-4946-8060-08c3a0110e2c.png)
+![uxnemu_cube3d](https://user-images.githubusercontent.com/10489588/176349461-5277d505-db2a-4ffa-af0c-b0430a1ed340.png)
+![uxnemu_hello-pong-1](https://user-images.githubusercontent.com/10489588/176349464-3727bd2c-67e9-4df0-92a6-a40ab6a4e89b.png)
+![uxnemu_mandelbrot](https://user-images.githubusercontent.com/10489588/176349469-3e76b4fc-2706-45e8-88cc-ae6aaf0a76fa.png)
+![uxnemu_mandelbrot-1](https://user-images.githubusercontent.com/10489588/176349474-a9f18eaa-e7d2-4f73-9778-4a9923cf7ae8.png)
+![uxnemu_screen](https://user-images.githubusercontent.com/10489588/176349485-183ba2f7-24dc-4623-a9db-0d9f5aadd741.png)
+
+
 ## Running your own ROMs
 
 The emulator is contained in the base uxnemu.gbc ROM, and the UXN ROM to be executed must be appended to it. A properly formed GB/GBC ROM will then need to be padded and have the header fixed, which can be performed using `rgbfix` from [RGBDS](https://rgbds.gbdev.io/). This is an example of combining the emulator with a ROM and fixing it from a Linux command prompt:
