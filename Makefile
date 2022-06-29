@@ -188,7 +188,7 @@ $(OBJDIR)/%.o $(DEPDIR)/%.mk: $(SRCDIR)/%.asm
 $(BINDIR)/$(ROMNAME)_%.$(ROMEXT): $(BINDIR)/$(ROMNAME).$(ROMEXT) $(SRCDIR)/roms/%.rom
 	@$(MKDIR_P) $(@D)
 	cat $(BINDIR)/$(ROMNAME).$(ROMEXT) $(SRCDIR)/roms/$*.rom > $(BINDIR)/$(ROMNAME)_$*.$(ROMEXT)
-	$(RGBFIX) -v -p $(PADVALUE) -v -i "$(GAMEID)" -k "$(LICENSEE)" -l $(OLDLIC) -m $(MBC) -n $(VERSION) -r $(SRAMSIZE) -t $* $(BINDIR)/$(ROMNAME)_$*.$(ROMEXT)
+	$(RGBFIX) -O -p $(PADVALUE) -v -i "$(GAMEID)" -k "$(LICENSEE)" -l $(OLDLIC) -m $(MBC) -n $(VERSION) -r $(SRAMSIZE) -t $* $(BINDIR)/$(ROMNAME)_$*.$(ROMEXT)
 
 ifneq ($(MAKECMDGOALS),clean)
 -include $(patsubst $(SRCDIR)/%.asm,$(DEPDIR)/%.mk,$(SRCS))
