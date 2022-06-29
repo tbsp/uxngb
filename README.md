@@ -6,6 +6,9 @@ No effort has gone into optimizing for performance, aside from trying to avoid w
 
 You can download a binary build [here](https://github.com/tbsp/uxngb/releases). Binaries with a variety of UXN ROMs appended are also available there.
 
+- `hello-*` UXN ROMs built using code from [compudanza's uxn tutorial series](https://compudanzas.net/uxn_tutorial.html), used under the [peer production license](https://wiki.p2pfoundation.net/Peer_Production_License).
+- All other UXN ROMs built (some with minor modifications to fit the GB screen) using code from [100 Rabbits](https://git.sr.ht/~rabbits/uxn/tree/main), copyright (c) Devine Lu Linvega under the [MIT license](https://opensource.org/licenses/MIT).
+
 ## Screenshots
 
 ![uxnemu_catclock](https://user-images.githubusercontent.com/10489588/176349457-68669912-c901-4946-8060-08c3a0110e2c.png)
@@ -18,7 +21,7 @@ You can download a binary build [here](https://github.com/tbsp/uxngb/releases). 
 
 ## Running your own ROMs
 
-The emulator is contained in the base uxnemu.gbc ROM, and the UXN ROM to be executed must be appended to it. A properly formed GB/GBC ROM will then need to be padded and have the header fixed, which can be performed using `rgbfix` from [RGBDS](https://rgbds.gbdev.io/). This is an example of combining the emulator with a ROM and fixing it from a Linux command prompt:
+The emulator is contained in the base `uxnemu.gbc` ROM, and the UXN ROM to be executed must be appended to it. To create a properly formed GB/GBC ROM, it will then need to be padded and have the header fixed, which can be performed using `rgbfix` from [RGBDS](https://rgbds.gbdev.io/). This is an example of combining the emulator with a ROM and fixing it from a Linux command prompt:
 ```
 cat uxnemu.gbc dvd.rom > uxnemu_dvd.gbc
 rgbfix -O -v -p 0xFF -t dvd uxnemu_dvd.gbc
@@ -32,7 +35,7 @@ rgbfix -O -v -p 0xFF -t dvd uxnemu_dvd.gbc
   - Background pixel drawing
   - Background sprite drawing
   - Auto byte for all supported drawing operations
-  - Foreground sprites are limited to 16 unique tile/blend combinations, and will begin to overwrite old tiles once this is exceeded
+  - Foreground sprites are limited to 16 unique tile/blend combinations, and will begin to overwrite old tiles once this is exceeded (sprites are flipped in hardware, so flip variations don't count toward this limit)
   - Foreground sprites are limited by the 10 sprites/line limit of the hardware (no attempt is made to overcome this via flickering)
 - Very basic Datetime device (fixed startup date/time, HH:MM:SS will advance)
 - Limited console output (only when built in CLI mode to run CPU instruction test ROM)
@@ -41,6 +44,7 @@ rgbfix -O -v -p 0xFF -t dvd uxnemu_dvd.gbc
 - UXN ROMs larger than ~8 KiB, or UXN memory beyond $2000
   - I originally intended to support the full 64 KiB memory space, using 8 banks of swapped external cartridge RAM, but as the performance I was going to actually end up with revealed itself that dropped in priority
 - Screen resizing (fixed at 160x144 pixels)
+- Setting the System RGB bytes has no effect on Game Boy
 - Foreground pixel drawing operations aren't currently supported
 - Certain blending combinations may not render correctly, and the opaque lookup is not applied
 - Stack over/underflow and divide-by-zero are not detected
