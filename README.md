@@ -1,60 +1,38 @@
-# gb-starter-kit
+# uxngb
 
-A customizable and ready-to-compile bundle for Game Boy RGBDS projects. Contains your bread and butter, guaranteed 100% kitchen sink-free.
+A highly experimental port of the [uxn virtual machine](https://wiki.xxiivv.com/site/uxn.html) to the Game Boy and Game Boy Color gaming handheld. I knew this was a fairly ridiculous project from the start, but wanted to see how it might perform and was pleased to see [compudanza's pong tutorial](https://compudanzas.net/uxn_tutorial_day_6.html) run at slow-motion playable speeds.
 
-## Downloading
+No effort has gone into optimizing for performance, aside from trying to avoid writing intentionally bad code. Getting it to run at all was the primary goal. I even optimized for space savings for several of the instructions, because the opportunity for code reuse was too hard to ignore. The MUL and DIV instructions are obviously very slow due to the lack of hardware support for those operations. Unrolling of loops and other approaches could yield significant improvements in speed.
 
-Downloading this repository requires some extra care, due to it using submodules. (If you know how to handle them, nothing more is needed.)
+You can download a binary build [here](https://github.com/tbsp/uxngb/releases). Binaries with a variety of UXN ROMs appended are also available there.
 
-### Use as a template
+## Running your own ROMs
 
-You can [make a new repository using this one as a template](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) or click the green "Use this template" button near the top-right of this page.
+The emulator is contained in the base uxnemu.gbc ROM, and the UXN ROM to be executed must be appended to it. A properly formed GB/GBC ROM will then need to be padded and have the header fixed, which can be performed using `rgbfix` from [RGBDS](https://rgbds.gbdev.io/). This is an example of combining the emulator with a ROM and fixing it from a Linux command prompt:
+```
+cat uxnemu.gbc dvd.rom > uxnemu_dvd.gbc
+rgbfix -O -v -p 0xFF -t dvd uxnemu_dvd.gbc
+```
 
-### Cloning
+## Implemented
 
-If cloning this repo from scratch, make sure to pass the `--recursive` flag to `git clone`; if you have already cloned it, you can use `git submodule update --init` within the cloned repo.
+- 253 uxn CPU instructions
+- Controller device
+- Screen device:
+  - Background pixel drawing
+  - Background sprite drawing
+  - Auto byte for all supported drawing operations
+  - Foreground sprites are limited to 16 unique tile/blend combinations, and will begin to overwrite old tiles once this is exceeded
+  - Foreground sprites are limited by the 10 sprites/line limit of the hardware (no attempt is made to overcome this via flickering)
+- Very basic Datetime device (fixed startup date/time, HH:MM:SS will advance)
+- Limited console output (only when built in CLI mode to run CPU instruction test ROM)
 
-If the project fails to build, and either `src/include/hardware.inc/` or `src/include/rgbds-structs/` are empty, try running `git submodule update --init`.
-
-### Download ZIP
-
-You can download a ZIP of this project by clicking the "Code" button next to the aforementioned green "Use this template" one. The resulting ZIP will however not contain the submodules, the files of which you will have to download manually.
-
-## Setting up
-
-Make sure you have [RGBDS](https://github.com/rednex/rgbds), at least version 0.4.0, and GNU Make installed. Python 3 is required for most scripts in the `src/tools/` folder.
-
-## Customizing
-
-Edit `project.mk` to customize most things specific to the project (like the game name, file name and extension, etc.). Everything has accompanying doc comments.
-
-Everything in the `src` folder is the source, and can be freely modified however you want. The basic structure in place should hint you at how things are organized. If you want to create a new "module", you simply need to drop a `.asm` file in the `src` directory, name does not matter. All `.asm` files in that root directory will be individually compiled by RGBASM.
-
-There is "basic" code in place, but some things need your manual intervention. Things requiring manual intervention will print an error message describing what needs to be changed, and a line number.
-
-The file at `src/res/build_date.asm` is compiled individually to include a build date in your ROM. Always comes in handy, and displayed in the bundled error handler.
-
-If you want to add resources, I recommend using the `src/res` folder. Add rules in the Makefile; there are several examples.
-
-It is recommended that the start of your code be in `src/intro.asm`.
-
-## Compiling
-
-Simply open you favorite command prompt / terminal, place yourself in this directory (the one the Makefile is located in), and run the command `make`. This should create a bunch of things, including the output in the `bin` folder.
-
-While this project is able to compile under "bare" Windows (i.e. without using MSYS2, Cygwin, etc.), it requires PowerShell, and is sometimes unreliable. You should try running `make` two or three times if it errors out.
-
-If you get errors that you don't understand, try running `make clean`. If that gives the same error, try deleting the `deps` folder. If that still doesn't work, try deleting the `bin` and `obj` folders as well. If that still doesn't work, you probably did something wrong yourself.
-
-## See also
-
-If you want something more barebones, check out [gb-boilerplate](https://github.com/ISSOtm/gb-boilerplate).
-
-[Here](https://gist.github.com/ISSOtm/a9057e7c66080f36afcd82ed2863fd62) are the naming conventions used in this code; maybe you'll find them useful.
-
-I recommend the [BGB](https://bgb.bircd.org) emulator for developing ROMs on Windows and, via Wine, Linux and macOS (64-bit build available for Catalina). [SameBoy](https://github.com/LIJI32/SameBoy) is more accurate, but has a much worse interface outside of macOS.
-
-### Libraries
-
-- [Variable-width font engine](https://github.com/ISSOtm/gb-vwf)
-- [structs in RGBDS](https://github.com/ISSOtm/rgbds-structs)
+## Unsupported
+- UXN ROMs larger than ~8 KiB, or UXN memory beyond $2000
+  - I originally intended to support the full 64 KiB memory space, using 8 banks of swapped external cartridge RAM, but as the performance I was going to actually end up with revealed itself that dropped in priority
+- Screen resizing (fixed at 160x144 pixels)
+- Foreground pixel drawing operations aren't currently supported
+- Certain blending combinations may not render correctly, and the opaque lookup is not applied
+- Stack over/underflow and divide-by-zero are not detected
+- No audio/midi/file device support
+- No support for relocatable stacks (seen in uxn11)
