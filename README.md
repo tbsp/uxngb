@@ -32,7 +32,7 @@ rgbfix -O -v -p 0xFF -t dvd uxnemu_dvd.gbc
   - Background pixel drawing
   - Background sprite drawing
   - Auto byte for all supported drawing operations
-  - Foreground sprites are limited to 16 unique tile/blend combinations, and will begin to overwrite old tiles once this is exceeded
+  - Foreground sprites are limited to 16 unique tile/blend combinations, and will begin to overwrite old tiles once this is exceeded (sprites are flipped in hardware, so flip variations don't count toward this limit)
   - Foreground sprites are limited by the 10 sprites/line limit of the hardware (no attempt is made to overcome this via flickering)
 - Very basic Datetime device (fixed startup date/time, HH:MM:SS will advance)
 - Limited console output (only when built in CLI mode to run CPU instruction test ROM)
