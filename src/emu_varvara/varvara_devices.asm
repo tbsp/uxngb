@@ -881,7 +881,7 @@ createOAMEntry:
 
 fgSprite1bpp:
     ldh     a, [hWorkingX]
-    cp      160
+    cp      161
     jr      nc, .outOfRange
     ldh     a, [hWorkingY]
     cp      144
@@ -912,7 +912,7 @@ fgSprite1bpp:
 
 fgSprite2bpp:
     ldh     a, [hWorkingX]
-    cp      160
+    cp      161
     jr      nc, .outOfRange
     ldh     a, [hWorkingY]
     cp      144
