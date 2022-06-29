@@ -16,14 +16,14 @@ ELSE
 ENDC
 
 SECTION "UXN HRAM", HRAM
-pc::        ds 2
-wst_ptr::   ds 1    ; should exist as the second last byte in the wst (programs that depend on that will fail right now)
-rst_ptr::   ds 1    ; should exist as the second last byte in the rst (programs that depend on that will fail right now)
+hPC::       ds 2
+hWSTPtr::   ds 1    ; should exist as the second last byte in the wst (programs that depend on that will fail right now)
+hRSTPtr::   ds 1    ; should exist as the second last byte in the rst (programs that depend on that will fail right now)
 
 ; The default stacks "live" at $10000-$100ff and $10100-$101ff in UXN memory
 SECTION "UXN Stacks", WRAM0, ALIGN[8]
-w_st::      ds 256
-r_st::      ds 256
+wWST::      ds 256
+wRST::      ds 256
 
 SECTION "UXN Devices", WRAM0, ALIGN[8]
 wDevices::  ds 16*16
@@ -66,8 +66,8 @@ Intro::
     rst     Memset
 
     ; Initialize stack pointers
-    ldh     [wst_ptr], a
-    ldh     [rst_ptr], a
+    ldh     [hWSTPtr], a
+    ldh     [hRSTPtr], a
 
     ; Copy entire ROM external RAM
     ; TODO: Copy in banks
@@ -78,9 +78,9 @@ Intro::
 
     ; initialize PC
     ld      a, HIGH(ePageProgram)
-    ldh     [pc], a
+    ldh     [hPC], a
     ld      a, LOW(ePageProgram)
-    ldh     [pc+1], a
+    ldh     [hPC+1], a
 
     ; initial eval loop
     call    uxn_eval
@@ -99,11 +99,11 @@ system_halt:
 uxn_eval:
 
     ; TODO: check shutdown vector (dev:$0f)
-    ; TODO: check wst_ptr
+    ; TODO: check hWSTPtr
 
-    ldh     a, [pc]
+    ldh     a, [hPC]
     ld      h, a
-    ldh     a, [pc+1]
+    ldh     a, [hPC+1]
     ld      l, a
     ld      b, [hl]     ; read next instruction
 
@@ -113,9 +113,9 @@ uxn_eval:
 
     inc     hl          ; increment PC, and store new value
     ld      a, h
-    ldh     [pc], a
+    ldh     [hPC], a
     ld      a, l
-    ldh     [pc+1], a
+    ldh     [hPC+1], a
 
     ld      a, b
     ld      b, 0

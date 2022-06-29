@@ -8,61 +8,61 @@ SECTION "UXN Instructions", ROM0
 
 ; Support macros
 WST_HL: MACRO ; instructions which add to the stack start at ptr
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     ld      l, a
     ENDM
 
 WST_HL_dec: MACRO ; instructions which consume the stack start at ptr-1
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     ld      l, a
     dec     l
     ENDM
 
 WST_PTR_L: MACRO
     ld      a, l
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
     ENDM
 
 WST_HA_dec_ptr: MACRO
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     dec     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
     ENDM
 
 RST_HL: MACRO
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     ld      l, a
     ENDM
 
 RST_HL_dec: MACRO ; instructions which consume the stack start at ptr-1
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     ld      l, a
     dec     l
     ENDM
 
 RST_PTR_L: MACRO
     ld      a, l
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     ENDM
 
 RST_HA_dec_ptr: MACRO
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     dec     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     ENDM
 
 WBIT_2K_SETUP: MACRO
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     inc     a
     inc     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     sub     6
     ld      l, a
@@ -81,11 +81,11 @@ WMATH_2K_SETUP: MACRO
     ENDM
 
 RBIT_2K_SETUP: MACRO
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     inc     a
     inc     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
 .continue
     sub     6
     ld      l, a
@@ -104,17 +104,17 @@ RMATH_2K_SETUP: MACRO
     ENDM
 
 PC_to_HL: MACRO
-    ldh     a, [pc]
+    ldh     a, [hPC]
     ld      h, a
-    ldh     a, [pc+1]
+    ldh     a, [hPC+1]
     ld      l, a
     ENDM
 
 HL_to_PC: MACRO
     ld      a, h
-    ldh     [pc], a
+    ldh     [hPC], a
     ld      a, l
-    ldh     [pc+1], a
+    ldh     [hPC+1], a
     ENDM
 
 PC_to_B: MACRO
@@ -144,9 +144,9 @@ _LIT::
     PC_to_B
     inc     hl          ; increment PC, and store new value
     ld      a, h
-    ldh     [pc], a
+    ldh     [hPC], a
     ld      a, l
-    ldh     [pc+1], a
+    ldh     [hPC+1], a
     WST_HL
     ld      [hl], b     ; push onto wst
     inc     l           ; inc stack ptr
@@ -158,9 +158,9 @@ _LITr::
     PC_to_B
     inc     hl          ; increment PC, and store new value
     ld      a, h
-    ldh     [pc], a
+    ldh     [hPC], a
     ld      a, l
-    ldh     [pc+1], a
+    ldh     [hPC+1], a
     RST_HL
     ld      [hl], b     ; push onto wst
     inc     l           ; inc stack ptr
@@ -201,8 +201,8 @@ _LIT2r::
 
 ; INC a -- b
 _INC::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
 .continue
     ld      l, a
     dec     l
@@ -211,8 +211,8 @@ _INC::
 
 ; INCr a -- b
 _INCr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     jr      _INC.continue
 
 ; INCk a -- a b
@@ -285,16 +285,16 @@ _INC2kr::
 
 ; POP a -- 
 _POP::
-    ldh     a, [wst_ptr]
+    ldh     a, [hWSTPtr]
     dec     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
     ret
 
 ; POPr a -- 
 _POPr::
-    ldh     a, [rst_ptr]
+    ldh     a, [hRSTPtr]
     dec     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     ret
 
 ; POPk a -- a
@@ -309,18 +309,18 @@ _POPkr::
 
 ; POP2 a b -- 
 _POP2::
-    ldh     a, [wst_ptr]
+    ldh     a, [hWSTPtr]
     dec     a
     dec     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
     ret
 
 ; POP2r a b -- 
 _POP2r::
-    ldh     a, [rst_ptr]
+    ldh     a, [hRSTPtr]
     dec     a
     dec     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     ret
 
 ; POP2k a b -- a b
@@ -335,10 +335,10 @@ _POP2kr::
 
 ; NIP a b -- b
 _NIP::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     dec     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     ld      l, a
     ld      a, [hld]
@@ -347,10 +347,10 @@ _NIP::
 
 ; NIPr a b -- b
 _NIPr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     dec     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _NIP.continue
 
 ; NIPk a b -- a b b
@@ -395,8 +395,8 @@ _NIP2kr::
 
 ; SWP a b -- b a
 _SWP::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
 .continue
     ld      l, a
     dec     l
@@ -408,8 +408,8 @@ _SWP::
     
 ; SWPr a b -- b a
 _SWPr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     jr      _SWP.continue ; TODO: Move to use jr
 
 ; SWPk a b -- a b b a
@@ -463,10 +463,10 @@ _SWP2r::
 
 ; SWP2k a b c d -- a b c d c d a b
 _SWP2k::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     add     4
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     sub     5
     ld      l, a
@@ -491,16 +491,16 @@ _SWP2k::
 
 ; SWP2kr a b c d -- a b c d c d a b
 _SWP2kr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     add     4
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _SWP2k.continue
 
 ; ROT a b c -- b c a
 _ROT::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
 .continue
     ld      l, a
     dec     l
@@ -516,8 +516,8 @@ _ROT::
 
 ; ROTr a b c -- b c a
 _ROTr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     jr      _ROT.continue ; TODO: Move to use jr
 
 ; ROTk a b c -- a b c b c a
@@ -591,10 +591,10 @@ _ROT2r::
 ; ROT2k a b c d e f -- a b c d e f c d e f a b
 ; TODO: Try to speed up this register-pressure traversal
 _ROT2k::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     add     6
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     sub     12          ; jump to the start of a, b
     ld      l, a
@@ -635,10 +635,10 @@ _ROT2k::
 ; ROT2kr a b c d e f -- a b c d e f c d e f a b
 ; TODO: Try to speed up this register-pressure traversal
 _ROT2kr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     add     6
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _ROT2k.continue
 
 ; DUP a -- a a
@@ -817,10 +817,10 @@ _OVR2r::
 
 ; OVR2k a b c d -- a b c d a b c d a b
 _OVR2k::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     add     6
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     sub     10
     ld      l, a
@@ -848,10 +848,10 @@ _OVR2k::
 
 ; OVR2kr a b c d -- a b c d a b c d a b
 _OVR2kr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     add     6
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _OVR2k.continue
 
 ; EQU a b -- bool8
@@ -969,10 +969,10 @@ _EQU2r::
 
 ; EQU2k a b c d -- a b c d bool8
 _EQU2k::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     inc     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     sub     5
     ld      l, a
@@ -1002,10 +1002,10 @@ _EQU2k::
 
 ; EQU2kr a b c d -- a b c d bool8
 _EQU2kr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     inc     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _EQU2k.continue
 
 ; NEQ a b -- bool8
@@ -1123,10 +1123,10 @@ _NEQ2r::
 
 ; NEQ2k a b c d -- a b c d bool8
 _NEQ2k::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     inc     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     sub     5
     ld      l, a
@@ -1156,10 +1156,10 @@ _NEQ2k::
 
 ; NEQ2kr a b c d -- a b c d bool8
 _NEQ2kr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     inc     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _NEQ2k.continue
 
 ; GTH a b -- bool8
@@ -1281,10 +1281,10 @@ _GTH2r::
 
 ; GTH2k a b c d -- a b c d bool8
 _GTH2k::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     inc     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     sub     5
     ld      l, a
@@ -1316,10 +1316,10 @@ _GTH2k::
 
 ; GTH2kr a b c d -- a b c d bool8
 _GTH2kr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     inc     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _GTH2k.continue
 
 ; LTH a b -- bool8
@@ -1444,10 +1444,10 @@ _LTH2r::
 
 ; LTH2k a b d c -- a b d c bool8
 _LTH2k::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     inc     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     sub     5
     ld      l, a
@@ -1479,10 +1479,10 @@ _LTH2k::
 
 ; LTH2kr a b d c -- a b d c bool8
 _LTH2kr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     inc     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _LTH2k.continue
 
 ; The JCN set of instructions is somewhat oddly positioned since it's expected
@@ -1490,11 +1490,11 @@ _LTH2kr::
 
 ; JCN cond8 addr --
 _JCN::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     dec     a
     dec     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     ld      l, a
     ld      c, [hl]
@@ -1507,34 +1507,34 @@ _JCN::
 
 ; JCNr cond8 addr --
 _JCNr::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     dec     a
     dec     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
     jr      _JCN.continue
 
 ; JCNk cond8 addr -- cond8 addr
 _JCNk::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     dec     a
     dec     a
     jr      _JCN.continue
 
 ; JCNkr cond8 addr -- cond8 addr
 _JCNkr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     dec     a
     dec     a
     jr      _JCN.continue
 
 ; JSR addr --
 _JSR::
-    ldh     a, [pc]
+    ldh     a, [hPC]
     ld      b, a
-    ldh     a, [pc+1]
+    ldh     a, [hPC+1]
     ld      c, a
 
     ; Offset back to UXN address, in case someone does some direct manipulation
@@ -1556,10 +1556,10 @@ _JSR::
 
 ; JMP addr --
 _JMP::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     dec     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     ld      l, a
     ld      c, [hl]
@@ -1572,16 +1572,16 @@ _JMP::
     PC_to_HL
     add     hl, bc
     ld      a, h
-    ldh     [pc], a
+    ldh     [hPC], a
     ld      a, l
-    ldh     [pc+1], a
+    ldh     [hPC+1], a
     ret
 
 ; JSRr addr --
 _JSRr::
-    ldh     a, [pc]
+    ldh     a, [hPC]
     ld      b, a
-    ldh     a, [pc+1]
+    ldh     a, [hPC+1]
     ld      c, a
 
     ; Offset back to UXN address, in case someone does some direct manipulation
@@ -1603,17 +1603,17 @@ _JSRr::
 
 ; JMPr addr --
 _JMPr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     dec     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _JMP.continue
 
 ; JSRk addr -- addr
 _JSRk::
-    ldh     a, [pc]
+    ldh     a, [hPC]
     ld      b, a
-    ldh     a, [pc+1]
+    ldh     a, [hPC+1]
     ld      c, a
 
     ; Offset back to UXN address, in case someone does some direct manipulation
@@ -1635,16 +1635,16 @@ _JSRk::
 
 ; JMPk addr -- addr
 _JMPk::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     dec     a
     jr      _JMP.continue
 
 ; JSRkr addr -- addr
 _JSRkr::
-    ldh     a, [pc]
+    ldh     a, [hPC]
     ld      b, a
-    ldh     a, [pc+1]
+    ldh     a, [hPC+1]
     ld      c, a
 
     ; Offset back to UXN address, in case someone does some direct manipulation
@@ -1666,8 +1666,8 @@ _JSRkr::
 
 ; JMPkr addr -- addr
 _JMPkr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     dec     a
     jr      _JMP.continue
 
@@ -1723,9 +1723,9 @@ _JCN2kr::
 ; JSR2 addr --
 _JSR2::
     RST_HL
-    ldh     a, [pc]
+    ldh     a, [hPC]
     ld      b, a
-    ldh     a, [pc+1]
+    ldh     a, [hPC+1]
     ld      c, a
 
     push    hl
@@ -1757,17 +1757,17 @@ _JMP2::
     ld      hl, eUXNMemory
     add     hl, bc
     ld      a, h
-    ldh     [pc], a
+    ldh     [hPC], a
     ld      a, l
-    ldh     [pc+1], a
+    ldh     [hPC+1], a
     ret
 
 ; JSR2r addr --
 _JSR2r::
     WST_HL
-    ldh     a, [pc]
+    ldh     a, [hPC]
     ld      b, a
-    ldh     a, [pc+1]
+    ldh     a, [hPC+1]
     ld      c, a
 
     push    hl
@@ -1799,9 +1799,9 @@ _JMP2r::
 _JSR2k::
     ; TODO: Find a way to reuse _JSR2, which is identical except for where it jumps at the end
     RST_HL
-    ldh     a, [pc]
+    ldh     a, [hPC]
     ld      b, a
-    ldh     a, [pc+1]
+    ldh     a, [hPC+1]
     ld      c, a
 
     push    hl
@@ -1832,9 +1832,9 @@ _JMP2k::
 _JSR2kr::
     ; TODO: Find a way to reuse _JSR2?, which is identical except for where it jumps at the end
     WST_HL
-    ldh     a, [pc]
+    ldh     a, [hPC]
     ld      b, a
-    ldh     a, [pc+1]
+    ldh     a, [hPC+1]
     ld      c, a
 
     push    hl
@@ -2412,10 +2412,10 @@ _LDA::
 
 ; LDAr addr16 -- value
 _LDAr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     dec     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _LDA.continue
 
 ; LDAk addr16 -- addr16 value
@@ -2473,12 +2473,12 @@ _LDA2r::
 
 ; LDA2k addr16 -- addr16 value
 _LDA2k::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     ld      l, a
     inc     a
     inc     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     dec     l
     dec     l
@@ -2496,12 +2496,12 @@ _LDA2k::
 
 ; LDA2kr addr16 -- addr16 value
 _LDA2kr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     ld      l, a
     inc     a
     inc     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _LDA2k.continue
 
 ; STA value addr16 --
@@ -2616,8 +2616,8 @@ _STA2kr::
 
 ; DEI device8 -- value
 _DEI::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
 .early_continue
     ld      e, a
     dec     e
@@ -2655,39 +2655,39 @@ _DEI::
 
 ; DEIr device8 -- value
 _DEIr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     jr      _DEI.early_continue
 
 ; DEIk device8 -- device8 value
 _DEIk::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     ld      e, a
     inc     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
     sub     2
     jr      _DEI.continue
 
 ; DEIkr device8 -- device8 value
 _DEIkr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     ld      e, a
     inc     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     sub     2
     jr      _DEI.continue
 
 ; DEI2 device8 -- value
 _DEI2::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     ld      l, a
     ld      e, a
     dec     e
     inc     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     dec     l
     ld      d, [hl]
@@ -2723,35 +2723,35 @@ _DEI2::
 
 ; DEI2r device8 -- value
 _DEI2r::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     ld      l, a
     ld      e, a
     dec     e
     inc     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _DEI2.continue
 
 ; DEI2k device8 -- device8 value
 _DEI2k::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     ld      l, a
     ld      e, a
     inc     a
     inc     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
     jr      _DEI2.continue
 
 ; DEI2kr device8 -- device8 value
 _DEI2kr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     ld      l, a
     ld      e, a
     inc     a
     inc     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _DEI2.continue
 
 ; DEO value device8 --
@@ -2920,12 +2920,12 @@ _ADDkr::
 
 ; ADD2 a b -- c
 _ADD2::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     dec     a
     ld      l, a
     dec     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     ld      c, [hl]
     dec     l
@@ -2947,12 +2947,12 @@ _ADD2::
 
 ; ADD2r a b -- c
 _ADD2r::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     dec     a
     ld      l, a
     dec     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _ADD2.continue
 
 ; ADD2k a b -- a b c
@@ -3021,12 +3021,12 @@ _SUBkr::
 
 ; SUB2 a b -- c
 _SUB2::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     dec     a
     ld      l, a
     dec     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     ld      e, [hl]
     dec     l
@@ -3046,12 +3046,12 @@ _SUB2::
 
 ; SUB2r a b -- c
 _SUB2r::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     dec     a
     ld      l, a
     dec     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _SUB2.continue
 
 ; SUB2k a b -- a b c
@@ -3109,10 +3109,10 @@ _MULr::
 
 ; MULk a b -- a b c
 _MULk::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     inc     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
     dec     a
     dec     a
 .continue
@@ -3146,10 +3146,10 @@ _MULk::
 
 ; MULkr a b -- a b c
 _MULkr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     inc     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     dec     a
     dec     a
     jr      _MULk.continue
@@ -3267,10 +3267,10 @@ _DIVr::
 
 ; DIVk a b -- a b c
 _DIVk::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     inc     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
     dec     a
     dec     a
 .continue
@@ -3303,10 +3303,10 @@ _DIVk::
 
 ; DIVkr a b -- a b c
 _DIVkr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     inc     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     dec     a
     dec     a
     jr      _DIVk.continue
@@ -3491,12 +3491,12 @@ _ANDkr::
 
 ; AND2 a b -- c
 _AND2::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     dec     a
     ld      l, a
     dec     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     ld      a, [hld]
     ld      b, [hl]
@@ -3510,12 +3510,12 @@ _AND2::
 
 ; AND2r a b -- c
 _AND2r::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     dec     a
     ld      l, a
     dec     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _AND2.continue
 
 ; AND2k a b -- a b c
@@ -3579,12 +3579,12 @@ _ORAkr::
 
 ; ORA2 a b -- c
 _ORA2::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     dec     a
     ld      l, a
     dec     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     ld      a, [hld]
     ld      b, [hl]
@@ -3598,12 +3598,12 @@ _ORA2::
     
 ; ORA2r a b -- c
 _ORA2r::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     dec     a
     ld      l, a
     dec     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _ORA2.continue
 
 ; ORA2k a b -- a b c
@@ -3667,12 +3667,12 @@ _EORkr::
 
 ; EOR2 a b -- c
 _EOR2::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     dec     a
     ld      l, a
     dec     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     ld      a, [hld]
     ld      b, [hl]
@@ -3686,12 +3686,12 @@ _EOR2::
 
 ; EOR2r a b -- c
 _EOR2r::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     dec     a
     ld      l, a
     dec     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _EOR2.continue
 
 ; EOR2k a b -- a b c
@@ -3753,10 +3753,10 @@ _SFTr::
 
 ; SFTk a shift8 -- a shift8 c
 _SFTk::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     inc     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     dec     a
     dec     a
@@ -3790,10 +3790,10 @@ _SFTk::
 
 ; SFTkr a shift8 -- a shift8 c
 _SFTkr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     inc     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _SFTk.continue
 
 
@@ -3840,11 +3840,11 @@ _SFT2r::
     
 ; SFT2k a shift8 -- a shift8 c
 _SFT2k::
-    ld      h, HIGH(w_st)
-    ldh     a, [wst_ptr]
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
     inc     a
     inc     a
-    ldh     [wst_ptr], a
+    ldh     [hWSTPtr], a
 .continue
     sub     5
     ld      l, a
@@ -3884,9 +3884,9 @@ _SFT2k::
 
 ; SFT2kr a shift8 -- a shift8 c
 _SFT2kr::
-    ld      h, HIGH(r_st)
-    ldh     a, [rst_ptr]
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
     inc     a
     inc     a
-    ldh     [rst_ptr], a
+    ldh     [hRSTPtr], a
     jr      _SFT2k.continue

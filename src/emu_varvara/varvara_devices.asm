@@ -122,9 +122,9 @@ VectorHandlers::
     add     hl, bc
 
     ld      a, h
-    ldh     [pc], a
+    ldh     [hPC], a
     ld      a, l
-    ldh     [pc+1], a
+    ldh     [hPC+1], a
 
     call    uxn_eval    ; eval instructions until a BRK is hit
 .noControllerVector
@@ -141,9 +141,9 @@ VectorHandlers::
     add     hl, bc
 
     ld      a, h
-    ldh     [pc], a
+    ldh     [hPC], a
     ld      a, l
-    ldh     [pc+1], a
+    ldh     [hPC+1], a
 
     call    uxn_eval    ; eval instructions until a BRK is hit
 .noScreenVector
