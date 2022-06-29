@@ -25,6 +25,11 @@ device_defaults::
 SECTION "UXNCLI WRAM", WRAM0
 cursor_addr::       ds 2
 
+SECTION "Font Tiles", ROM0
+FontTiles:
+    incbin "res/comic8x8_linear.2bpp"
+.end
+
 SECTION "UXNCLI Vectors", ROM0
 
 vector_handlers::

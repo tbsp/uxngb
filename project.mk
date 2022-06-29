@@ -34,7 +34,7 @@ MBC := 0x1A
 SRAMSIZE := 0x02
 
 # ROM name
-ROMNAME := uxngb
+ROMNAME := uxnemu
 ROMEXT  := gbc
 
 

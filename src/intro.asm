@@ -17,10 +17,6 @@ ENDC
 
 DEF PageProgram     EQU $0100
 
-SECTION "Font Tiles", ROM0
-FontTiles:
-    incbin "res/comic8x8_linear.2bpp"
-.end
 
 SECTION "UXN HRAM", HRAM
 pc::        ds 2
