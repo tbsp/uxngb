@@ -18,6 +18,9 @@ You can download a binary build [here](https://github.com/tbsp/uxngb/releases). 
 ![uxnemu_mandelbrot-1](https://user-images.githubusercontent.com/10489588/176349474-a9f18eaa-e7d2-4f73-9778-4a9923cf7ae8.png)
 ![uxnemu_screen](https://user-images.githubusercontent.com/10489588/176349485-183ba2f7-24dc-4623-a9db-0d9f5aadd741.png)
 
+## Performance
+
+The mandlebrot ROM currently takes ~1h44m to render fully on an original Game Boy, and ~52min on a Game Boy Color (using double-speed mode).
 
 ## Running your own ROMs
 
