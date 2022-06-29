@@ -41,6 +41,7 @@ rgbfix -O -v -p 0xFF -t dvd uxnemu_dvd.gbc
 - UXN ROMs larger than ~8 KiB, or UXN memory beyond $2000
   - I originally intended to support the full 64 KiB memory space, using 8 banks of swapped external cartridge RAM, but as the performance I was going to actually end up with revealed itself that dropped in priority
 - Screen resizing (fixed at 160x144 pixels)
+- Setting the System RGB bytes has no effect on Game Boy
 - Foreground pixel drawing operations aren't currently supported
 - Certain blending combinations may not render correctly, and the opaque lookup is not applied
 - Stack over/underflow and divide-by-zero are not detected
