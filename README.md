@@ -17,6 +17,8 @@ You can download a binary build [here](https://github.com/tbsp/uxngb/releases). 
 ![uxnemu_mandelbrot](https://user-images.githubusercontent.com/10489588/176349469-3e76b4fc-2706-45e8-88cc-ae6aaf0a76fa.png)
 ![uxnemu_mandelbrot-1](https://user-images.githubusercontent.com/10489588/176349474-a9f18eaa-e7d2-4f73-9778-4a9923cf7ae8.png)
 ![uxnemu_screen](https://user-images.githubusercontent.com/10489588/176349485-183ba2f7-24dc-4623-a9db-0d9f5aadd741.png)
+<img src="https://user-images.githubusercontent.com/10489588/176512446-a56458a1-e4e2-4738-bc46-b3b9ff319f38.jpg" height=144/>
+<img src="https://user-images.githubusercontent.com/10489588/176512460-f86e0335-e4d8-421b-b7cf-72347bd1a8f6.jpg" height=144/>
 
 ## Performance
 
