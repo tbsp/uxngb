@@ -29,7 +29,7 @@ rgbfix -O -v -p 0xFF -t dvd uxnemu_dvd.gbc
 
 ## Implemented
 
-- 253 uxn CPU instructions
+- All 253 uxn CPU instructions
 - Controller device
 - Screen device:
   - Background pixel drawing
