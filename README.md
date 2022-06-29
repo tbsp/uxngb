@@ -18,7 +18,7 @@ You can download a binary build [here](https://github.com/tbsp/uxngb/releases). 
 
 ## Running your own ROMs
 
-The emulator is contained in the base `uxnemu.gbc` ROM, and the UXN ROM to be executed must be appended to it. A properly formed GB/GBC ROM will then need to be padded and have the header fixed, which can be performed using `rgbfix` from [RGBDS](https://rgbds.gbdev.io/). This is an example of combining the emulator with a ROM and fixing it from a Linux command prompt:
+The emulator is contained in the base `uxnemu.gbc` ROM, and the UXN ROM to be executed must be appended to it. To create a properly formed GB/GBC ROM, it will then need to be padded and have the header fixed, which can be performed using `rgbfix` from [RGBDS](https://rgbds.gbdev.io/). This is an example of combining the emulator with a ROM and fixing it from a Linux command prompt:
 ```
 cat uxnemu.gbc dvd.rom > uxnemu_dvd.gbc
 rgbfix -O -v -p 0xFF -t dvd uxnemu_dvd.gbc
