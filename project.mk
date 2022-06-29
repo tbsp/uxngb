@@ -13,7 +13,7 @@ VERSION := 0
 GAMEID := _uxn
 
 # Game title, up to 11 ASCII chars
-TITLE := uxngb
+TITLE := uxnemu
 
 # New licensee, 2 ASCII chars
 # Homebrew games FTW!
