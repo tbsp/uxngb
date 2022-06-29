@@ -1,29 +1,29 @@
 
 SECTION "Device Handlers", ROM0, ALIGN[7]
-device_handlers::
-    dw dev_system_dei, dev_system_dei2, dev_system_deo, dev_system_deo2 ; system
-    dw dev_nil, dev_nil, dev_console_deo, dev_console_deo2              ; console
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty (file0)
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty (file1)
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty (datetime)
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
+DeviceHandlers::
+    dw DevSystemDEI, DevSystemDEI2, DevSystemDEO, DevSystemDEO2 ; system
+    dw DevNil, DevNil, DevConsoleDEO, DevConsoleDEO2              ; console
+    dw DevNil, DevNil, DevNil, DevNil                               ; empty
+    dw DevNil, DevNil, DevNil, DevNil                               ; empty
+    dw DevNil, DevNil, DevNil, DevNil                               ; empty
+    dw DevNil, DevNil, DevNil, DevNil                               ; empty
+    dw DevNil, DevNil, DevNil, DevNil                               ; empty
+    dw DevNil, DevNil, DevNil, DevNil                               ; empty
+    dw DevNil, DevNil, DevNil, DevNil                               ; empty
+    dw DevNil, DevNil, DevNil, DevNil                               ; empty
+    dw DevNil, DevNil, DevNil, DevNil                               ; empty (file0)
+    dw DevNil, DevNil, DevNil, DevNil                               ; empty (file1)
+    dw DevNil, DevNil, DevNil, DevNil                               ; empty (datetime)
+    dw DevNil, DevNil, DevNil, DevNil                               ; empty
+    dw DevNil, DevNil, DevNil, DevNil                               ; empty
+    dw DevNil, DevNil, DevNil, DevNil                               ; empty
 
 SECTION "UXNCLI Device Defaults", ROM0
-device_defaults::
+DefaultDefaults::
     ds 256, 0
 
 SECTION "UXNCLI WRAM", WRAM0
-cursor_addr::       ds 2
+wCursorAddr::       ds 2
 
 SECTION "Font Tiles", ROM0
 FontTiles:
@@ -32,39 +32,39 @@ FontTiles:
 
 SECTION "UXNCLI Vectors", ROM0
 
-vector_handlers::
+VectorHandlers::
     ret
 
 SECTION "UXNCLI Devices", ROM0
 
-dev_system_dei::
+DevSystemDEI::
     ret
 
-dev_system_dei2::
+DevSystemDEI2::
     ret
 
 ; d = device
 ; b = data
-dev_system_deo::
+DevSystemDEO::
     ; TODO: "Special handling" (set wst/rst?)
     ret
 
 ; d = device
 ; bc = data
-dev_system_deo2::
+DevSystemDEO2::
     ret
 
 ; d = device
 ; b = data
-dev_console_deo::
+DevConsoleDEO::
     ld      a, d
     cp      $18
     jr      nz, .notWrite
 
     ; write character
-    ld      a, [cursor_addr]
+    ld      a, [wCursorAddr]
     ld      h, a
-    ld      a, [cursor_addr+1]
+    ld      a, [wCursorAddr+1]
     ld      l, a
 
     ; special characters
@@ -85,17 +85,17 @@ dev_console_deo::
 
 .storeCursor
     ld      a, h
-    ld      [cursor_addr], a
+    ld      [wCursorAddr], a
     ld      a, l
-    ld      [cursor_addr+1], a
+    ld      [wCursorAddr+1], a
 .notWrite
     ret
 
 ; d = device
 ; bc = data
-dev_console_deo2::
+DevConsoleDEO2::
     ; TODO: write to console
     ret
 
-dev_nil::
+DevNil::
     ret

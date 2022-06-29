@@ -6,26 +6,26 @@
 DEF ENABLE_DMG_PALETTES     EQU 0
 
 SECTION "Device Handlers", ROM0, ALIGN[7]
-device_handlers::
-    dw dev_system_dei, dev_system_dei2, dev_system_deo, dev_system_deo2 ; system
-    dw dev_nil, dev_nil, dev_console_deo, dev_console_deo2              ; console
-    dw dev_screen_dei, dev_screen_dei2, dev_screen_deo, dev_screen_deo2 ; screen
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; audio
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; controller
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; mouse
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty (file0)
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty (file1)
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty (datetime)
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
-    dw dev_nil, dev_nil, dev_nil, dev_nil                               ; empty
+DeviceHandlers::
+    dw DevSystemDEI, DevSystemDEI2, DevSystemDEO, DevSystemDEO2 ; system
+    dw DevNil, DevNil, DevConsoleDEO, DevConsoleDEO2            ; console
+    dw DevScreenDEI, DevScreenDEI2, DevScreenDEO, DevScreenDEO2 ; screen
+    dw DevNil, DevNil, DevNil, DevNil                           ; audio
+    dw DevNil, DevNil, DevNil, DevNil                           ; empty
+    dw DevNil, DevNil, DevNil, DevNil                           ; empty
+    dw DevNil, DevNil, DevNil, DevNil                           ; empty
+    dw DevNil, DevNil, DevNil, DevNil                           ; empty
+    dw DevNil, DevNil, DevNil, DevNil                           ; controller
+    dw DevNil, DevNil, DevNil, DevNil                           ; mouse
+    dw DevNil, DevNil, DevNil, DevNil                           ; empty (file0)
+    dw DevNil, DevNil, DevNil, DevNil                           ; empty (file1)
+    dw DevNil, DevNil, DevNil, DevNil                           ; empty (datetime)
+    dw DevNil, DevNil, DevNil, DevNil                           ; empty
+    dw DevNil, DevNil, DevNil, DevNil                           ; empty
+    dw DevNil, DevNil, DevNil, DevNil                           ; empty
 
 SECTION "Varvara Device Defaults", ROM0
-device_defaults::
+DefaultDefaults::
     ; system (0x00)
     dw 0        ; vector
     db 0        ; wst
@@ -100,10 +100,10 @@ hSpriteUnaligned:   ds 1    ; flag indicating if BG sprite being drawn is unalig
 
 SECTION "Varvara Vectors", ROM0
 
-vector_handlers::
+VectorHandlers::
 
     ; controller vector
-    ld      hl, devices + $80
+    ld      hl, wDevices + $80
     ld      a, [hli]
     ld      c, [hl]
     ld      b, a
@@ -118,7 +118,7 @@ vector_handlers::
     jr      z, .noControllerVector
     ldh     [hPriorKeys], a
 
-    ld      hl, uxn_memory
+    ld      hl, eUXNMemory
     add     hl, bc
 
     ld      a, h
@@ -130,14 +130,14 @@ vector_handlers::
 .noControllerVector
 
     ; screen vector
-    ld      hl, devices + $20
+    ld      hl, wDevices + $20
     ld      a, [hli]
     ld      c, [hl]
     ld      b, a
     or      c
     jr      z, .noScreenVector
 
-    ld      hl, uxn_memory
+    ld      hl, eUXNMemory
     add     hl, bc
 
     ld      a, h
@@ -151,32 +151,32 @@ vector_handlers::
     ret
 
 
-SECTION "Varvara Devices", ROM0
+SECTION "Varvara wDevices", ROM0
 
-dev_system_dei::
+DevSystemDEI::
     ret
 
-dev_system_dei2::
+DevSystemDEI2::
     ret
 
 ; d = device
 ; b = data
-dev_system_deo::
+DevSystemDEO::
 
     ; TODO: Check for any writes to RGB range
 
 ;     ld      a, d
 ;     cp      $08
 ;     jr      nz, .notRed
-;     call    updatePalette
+;     call    UpdatePalette
 ; .notRed
 ;     cp      $0a
 ;     jr      nz, .notGreen
-;     call    updatePalette
+;     call    UpdatePalette
 ; .notGreen
 ;     cp      $0c
 ;     jr      nz, .notBlue
-;     call    updatePalette
+;     call    UpdatePalette
 ; .notBlue
 
     ret
@@ -187,7 +187,7 @@ ENDC
 
 ; Convert the color values stored in the system device to a host-compatible palette
 ;  and then queue up a palette update for the next VBlank
-updatePalette:
+UpdatePalette:
 
     ldh     a, [hConsoleType]
     or      a
@@ -197,9 +197,9 @@ IF ENABLE_DMG_PALETTES
     ; For DMG convert the RGB to a 2 bit value
     ; Input: 4bit RGB for each of 4 channels, stored in 6 bytes
     ; Output: 2bit brightness value for each of 4 channels
-    ld      hl, devices + $08 + 1
-    call    convertTwoShades
-    call    convertTwoShades
+    ld      hl, wDevices + $08 + 1
+    call    ConvertTwoShades
+    call    ConvertTwoShades
     
     ld      a, c
     ldh     [rBGP], a
@@ -211,10 +211,10 @@ ENDC
 
     ; For CGB convert from 12 bit to 15 bit RGB
     ; CGB: xBBBBBGG_GGGRRRRR
-    ld      hl, devices + $08
+    ld      hl, wDevices + $08
     ld      bc, wPendingPalettes
-    call    convertTwoColors
-    call    convertTwoColors
+    call    ConvertTwoColors
+    call    ConvertTwoColors
 
     ld      a, 1
     ldh     [hPalettePending], a
@@ -222,7 +222,7 @@ ENDC
     ret
 
 IF ENABLE_DMG_PALETTES
-convertTwoShades:
+ConvertTwoShades:
     ; color 0
     ld      a, [hli]    ; red
     inc     l
@@ -300,7 +300,7 @@ convertTwoShades:
     ret
 ENDC
 
-convertTwoColors:
+ConvertTwoColors:
     ; color 0
     ld      a, [hli]    ; red
     inc     l
@@ -362,49 +362,49 @@ convertTwoColors:
 
 ; d = device
 ; bc = data
-dev_system_deo2::
+DevSystemDEO2::
 
     ld      a, d
     cp      $08
     jr      nz, .notRed
-    call    updatePalette
+    call    UpdatePalette
 .notRed
     cp      $0a
     jr      nz, .notGreen
-    call    updatePalette
+    call    UpdatePalette
 .notGreen
     cp      $0c
     jr      nz, .notBlue
-    call    updatePalette
+    call    UpdatePalette
 .notBlue
 
     ret
 
 ; d = device
 ; b = data
-dev_console_deo::
+DevConsoleDEO::
     ret
 
 ; d = device
 ; bc = data
-dev_console_deo2::
+DevConsoleDEO2::
     ; TODO: write to console
     ret
 
 ; d = device
 ; bc = data
-dev_screen_dei::
+DevScreenDEI::
     ret
 
 ; d = device
 ; bc = data
-dev_screen_dei2::
+DevScreenDEI2::
     ; TODO: Prevent width/height from exceeding 160x144 screen size
     ret
 
 ; d = device
 ; b = data
-dev_screen_deo::
+DevScreenDEO::
     ld      a, b
     ldh     [hDataByte], a
     ; Determine operation
@@ -419,10 +419,10 @@ dev_screen_deo::
 .pixel
     ld      a, b
     bit     6, a
-    jp      nz, .pixel_fg
+    jp      nz, .pixelFG
 
     ; background pixel
-    ld      de, devices + $2b   ; low(y)
+    ld      de, wDevices + $2b   ; low(y)
     ld      a, [de]
     ldh     [hPixelY], a
     dec     e
@@ -432,13 +432,13 @@ dev_screen_deo::
     ldh     a, [hDataByte]
     ldh     [hPixelData], a
 
-    call    pixel_draw
+    call    PixelDraw
 
     ; auto-advance based on auto flag
-    ld      a, [devices + $26]
+    ld      a, [wDevices + $26]
     bit     0, a
     jr      z, .pixel_noAutoX
-    ld      hl, devices + $28
+    ld      hl, wDevices + $28
     ld      a, [hli]
     ld      b, a
     ld      a, [hl]
@@ -449,10 +449,10 @@ dev_screen_deo::
     ld      a, b
     ld      [hl], a
 .pixel_noAutoX
-    ld      a, [devices + $26]
+    ld      a, [wDevices + $26]
     bit     1, a
     jr      z, .pixel_noAutoY
-    ld      hl, devices + $2a
+    ld      hl, wDevices + $2a
     ld      a, [hli]
     ld      b, a
     ld      a, [hl]
@@ -466,7 +466,9 @@ dev_screen_deo::
 
     ret
 
-.pixel_fg
+.pixelFG
+    ; TODO: Find a way to efficiently use the limited tile VRAM and hardware objects
+    ;  to render foreground pixels.
     ret
 
 .sprite
@@ -491,7 +493,7 @@ dev_screen_deo::
     ld      a, [hl]
     ld      [wPixelBlend+3], a
 
-    ld      a, [devices + $26]  ; auto
+    ld      a, [wDevices + $26]  ; auto
     ld      c, a
     and     $f0
     swap    a
@@ -514,14 +516,14 @@ dev_screen_deo::
 
     ld      a, b    ; get hDataByte
     bit     6, a
-    jp      nz, .sprite_fg
+    jp      nz, .spriteFG
 
-.sprite_bg
+.spriteBG
     ; background 'sprite'
 
     ; initialize working x/y coordinates
     ; TODO: Check high byte to see if we should just not render this at all
-    ld      hl, devices + $29
+    ld      hl, wDevices + $29
     ld      a, [hli]    ; low(x)
     ldh     [hWorkingX], a
     and     %00000111   ; keep unaligned portion
@@ -539,17 +541,17 @@ dev_screen_deo::
     ;  that).
     ldh     a, [hDataByte]
     bit     7, a
-    call    z, bgSprite1bpp
+    call    z, BGSprite1bpp
     ldh     a, [hDataByte]
     bit     7, a
-    call    nz, bgSprite2bpp
+    call    nz, BGSprite2bpp
 
     ; perform final auto adjustments
 
     ; Note: The auto x/y functions in a somewhat unintuitive manner, but is quite clever in allowing
     ;  automatic sprite layout over both dimensions since the opposite deltas are applied during a single
     ;  auto write, and then applied to the named dimensions afterwards, setting up subsequent writes.
-    ld      hl, devices + $29 ; low(x)
+    ld      hl, wDevices + $29 ; low(x)
     ldh     a, [hDeltaX]
     add     [hl]
     ld      [hli], a
@@ -560,10 +562,10 @@ dev_screen_deo::
 
     ret
 
-.sprite_fg
+.spriteFG
     ; initialize working x/y coordinates
     ; TODO: Check high byte to see if we should just not render this at all
-    ld      hl, devices + $29
+    ld      hl, wDevices + $29
     ld      a, [hli]    ; low(x)
     ldh     [hWorkingX], a
     inc     l
@@ -572,14 +574,14 @@ dev_screen_deo::
 
     ldh     a, [hDataByte]
     bit     7, a
-    call    z, fgSprite1bpp
+    call    z, FGSprite1bpp
     ldh     a, [hDataByte]
     bit     7, a
-    call    nz, fgSprite2bpp
+    call    nz, FGSprite2bpp
 
     ; perform final auto adjustments
 
-    ld      hl, devices + $29 ; low(x)
+    ld      hl, wDevices + $29 ; low(x)
     ldh     a, [hDeltaX]
     add     [hl]
     ld      [hli], a
@@ -592,7 +594,7 @@ dev_screen_deo::
 
 ; Draw a pixel at hPixelX/hPixelY with color based on hDataByte
 ; Destroys: AF, BC, HL, DE
-pixel_draw:
+PixelDraw:
     ldh     a, [hPixelY]
     cp      144
     ret     nc          ; out of Y range
@@ -697,7 +699,7 @@ pixel_draw:
 
     ret
 
-locateTargetSpriteTileVRAM:
+LocateTargetSpriteTileVRAM:
     ; Current sprite hiding approach:
     ;  - When blend=0, return the tileID of the first entry which matches the source addr
     ;  - The calling code will then hide the first sprite at the given x/y coordinates which
@@ -709,7 +711,7 @@ locateTargetSpriteTileVRAM:
     ldh     a, [hDataByte]
     and     %10001111     ; only keep the bits that affect tile uniqueness
     ld      b, a
-    ld      hl, devices + $2c   ; get source addr of UXN tile data
+    ld      hl, wDevices + $2c   ; get source addr of UXN tile data
     ld      a, [hli]
     ld      d, a
     ld      e, [hl]
@@ -811,7 +813,7 @@ locateTargetSpriteTileVRAM:
 
     ret
 
-createOAMEntry:
+CreateOAMEntry:
     ld      e, a    ; cache tileID
 
     ldh     a, [hDataByte]
@@ -879,7 +881,7 @@ createOAMEntry:
     
     ret
 
-fgSprite1bpp:
+FGSprite1bpp:
     ldh     a, [hWorkingX]
     cp      161
     jr      nc, .outOfRange
@@ -887,30 +889,30 @@ fgSprite1bpp:
     cp      144
     jr      nc, .outOfRange
 
-    call    locateTargetSpriteTileVRAM
+    call    LocateTargetSpriteTileVRAM
     or      a
-    jr      nz, .createOAMEntry
+    jr      nz, .CreateOAMEntry
 
     ld      b, 0    ; disable software flipping of tiles
-    call    tileToBuffer1bpp
+    call    TileToBuffer1bpp
     ld      a, [wSpriteTileAddr]
     ld      l, a
     ld      a, [wSpriteTileAddr+1]
     ld      h, a
-    call    render1bppTile
+    call    Render1bppTile
     ld      a, [wSpriteTileID]
-.createOAMEntry
-    call    createOAMEntry
+.CreateOAMEntry
+    call    CreateOAMEntry
 
 .outOfRange
     ld      d, 8    ; 8 byte offset between 1bpp tiles
-    call    applyAutoAdjustments
-    jp      nz, fgSprite1bpp
+    call    ApplyAutoAdjustments
+    jp      nz, FGSprite1bpp
 
     ret
 
 
-fgSprite2bpp:
+FGSprite2bpp:
     ldh     a, [hWorkingX]
     cp      161
     jr      nc, .outOfRange
@@ -918,25 +920,25 @@ fgSprite2bpp:
     cp      144
     jr      nc, .outOfRange
 
-    call    locateTargetSpriteTileVRAM
+    call    LocateTargetSpriteTileVRAM
     or      a
-    jr      nz, .createOAMEntry
+    jr      nz, .CreateOAMEntry
 
     ld      b, 0    ; disable software flipping of tiles
-    call    tileToBuffer2bpp
+    call    TileToBuffer2bpp
     ld      a, [wSpriteTileAddr]
     ld      l, a
     ld      a, [wSpriteTileAddr+1]
     ld      h, a
-    call    render2bppTile
+    call    Render2bppTile
     ld      a, [wSpriteTileID]
-.createOAMEntry
-    call    createOAMEntry
+.CreateOAMEntry
+    call    CreateOAMEntry
 
 .outOfRange
     ld      d, 16
-    call    applyAutoAdjustments
-    jp      nz, fgSprite2bpp
+    call    ApplyAutoAdjustments
+    jp      nz, FGSprite2bpp
 
     ret
 
@@ -944,13 +946,13 @@ fgSprite2bpp:
 ; Copy a 1bpp UXN tile pointed to by Screen.addr to the wTileBuffer, including flips
 ; Args: B contains the data byte (passed to allow foreground sprites to bypaass
 ;       software tile flipping)
-tileToBuffer1bpp:
+TileToBuffer1bpp:
     ; Locate UXN addr in SRAM (TODO: Account for banks)
-    ld      hl, devices + $2c   ; addr
+    ld      hl, wDevices + $2c   ; addr
     ld      d, [hl]
     inc     l
     ld      e, [hl]
-    ld      hl, uxn_memory
+    ld      hl, eUXNMemory
     add     hl, de
     ld      d, h
     ld      e, l
@@ -1033,7 +1035,7 @@ tileToBuffer1bpp:
     ret
 
 ; Render a 1bpp tile from wTileBuffer to HL (tile VRAM)
-render1bppTile:
+Render1bppTile:
     ld      de, wTileBuffer
     ld      b, 8        ; byte counter
 .vLoop
@@ -1103,16 +1105,16 @@ render1bppTile:
     ret
 
 
-bgSprite1bpp:
+BGSprite1bpp:
     ldh     a, [hDataByte]
     ld      b, a
-    call    tileToBuffer1bpp
+    call    TileToBuffer1bpp
 
     ldh     a, [hSpriteUnaligned]
     or      a
     jr      z, .aligned
 
-    ; unaligned sprites perform 64 subsequent pixel_draw calls! (this is lethally inefficient)
+    ; unaligned sprites perform 64 subsequent PixelDraw calls! (this is lethally inefficient)
     ldh     a, [hWorkingY]
     ldh     [hPixelY], a
     ldh     a, [hWorkingX]
@@ -1120,7 +1122,7 @@ bgSprite1bpp:
 
     ld      de, wTileBuffer
     ld      b, 8        ; byte counter
-.1bppU_v
+.vLoop
 
     ld      a, [de]     ; setup working bytes for this 8-pixel row
     inc     de
@@ -1130,7 +1132,7 @@ bgSprite1bpp:
 
     push    de
     ld      c, 8        ; bit counter
-.1bppU_bit
+.bitLoop
     push    bc
     ldh     a, [hWorkingBytes]
     ld      b, a
@@ -1154,7 +1156,7 @@ bgSprite1bpp:
     ld      a, h
     ldh     [hPixelData], a
 
-    call    pixel_draw
+    call    PixelDraw
 
     ldh     a, [hPixelX]
     inc     a
@@ -1164,7 +1166,7 @@ bgSprite1bpp:
 
 .nextPixel
     dec     c
-    jr      nz, .1bppU_bit
+    jr      nz, .bitLoop
     pop     de
 
     ldh     a, [hWorkingX]
@@ -1174,7 +1176,7 @@ bgSprite1bpp:
     ldh     [hPixelY], a
 
     dec     b
-    jr      nz, .1bppU_v
+    jr      nz, .vLoop
     jr      .autoAdvance
 
 .aligned
@@ -1214,21 +1216,21 @@ bgSprite1bpp:
     sla     l           ; restore L minus bit
     add     hl, bc
 
-    call    render1bppTile
+    call    Render1bppTile
 
 .yOutOfRange
 .xOutOfRange
 .autoAdvance
 
     ld      d, 8    ; 8 byte offset between 1bpp tiles
-    call    applyAutoAdjustments
-    jp      nz, bgSprite1bpp
+    call    ApplyAutoAdjustments
+    jp      nz, BGSprite1bpp
 
     ret
 
 ; Apply auto x/y/addr:
 ; Args: D is addr delta to apply in bytes
-applyAutoAdjustments:
+ApplyAutoAdjustments:
     ; apply auto adjustments
     ld      hl, hWorkingX
     ld      a, [hli]    ; get hWorkingX
@@ -1244,7 +1246,7 @@ applyAutoAdjustments:
     ldh     a, [hAutoAddr]
     or      a
     jr      z, .doneAutoAddr
-    ld      hl, devices + $2c
+    ld      hl, wDevices + $2c
     ld      a, [hli]
     ld      c, [hl]
     ld      b, a
@@ -1268,14 +1270,14 @@ applyAutoAdjustments:
 ; Copy a 2bpp UXN tile pointed to by Screen.addr to the wTileBuffer, including flips
 ; Args: B contains the data byte (passed to allow foreground sprites to bypaass
 ;       software tile flipping)
-tileToBuffer2bpp:
+TileToBuffer2bpp:
 
     ; Locate UXN addr in SRAM (TODO: Account for banks)
-    ld      hl, devices + $2c   ; addr
+    ld      hl, wDevices + $2c   ; addr
     ld      d, [hl]
     inc     l
     ld      e, [hl]
-    ld      hl, uxn_memory
+    ld      hl, eUXNMemory
     add     hl, de
     ld      d, h
     ld      e, l
@@ -1389,7 +1391,7 @@ tileToBuffer2bpp:
     ret
 
 ; Render a 2bpp tile from DE (wTileBuffer) to HL (tile VRAM)
-render2bppTile:
+Render2bppTile:
     ld      de, wTileBuffer
     ld      b, 8        ; byte counter
 .vLoop
@@ -1461,16 +1463,16 @@ render2bppTile:
 
     ret
 
-bgSprite2bpp:
+BGSprite2bpp:
     ldh     a, [hDataByte]
     ld      b, a
-    call    tileToBuffer2bpp
+    call    TileToBuffer2bpp
 
     ldh     a, [hSpriteUnaligned]
     or      a
     jr      z, .aligned
 
-    ; unaligned sprites perform 64 subsequent pixel_draw calls! (this is lethally inefficient)
+    ; unaligned sprites perform 64 subsequent PixelDraw calls! (this is lethally inefficient)
     ldh     a, [hWorkingY]
     ldh     [hPixelY], a
     ldh     a, [hWorkingX]
@@ -1478,7 +1480,7 @@ bgSprite2bpp:
 
     ld      de, wTileBuffer
     ld      b, 8        ; byte counter
-.2bppU_v
+.vLoop
 
     ld      a, [de]     ; setup working bytes for this 8-pixel row
     ld      hl, $0008   ; UXN tile data isn't interlaced like GB, so we have to span 8 bytes
@@ -1493,7 +1495,7 @@ bgSprite2bpp:
 
     push    de
     ld      c, 8        ; bit counter
-.2bppU_bit
+.bitLoop
     push    bc
     ldh     a, [hWorkingBytes]
     ld      b, a
@@ -1517,7 +1519,7 @@ bgSprite2bpp:
     ld      a, h
     ldh     [hPixelData], a
 
-    call    pixel_draw
+    call    PixelDraw
 
     ldh     a, [hPixelX]
     inc     a
@@ -1527,7 +1529,7 @@ bgSprite2bpp:
 
 .nextPixel
     dec     c
-    jr      nz, .2bppU_bit
+    jr      nz, .bitLoop
 
     ldh     a, [hWorkingX]
     ldh     [hPixelX], a
@@ -1538,7 +1540,7 @@ bgSprite2bpp:
     pop     de
 
     dec     b
-    jr      nz, .2bppU_v
+    jr      nz, .vLoop
     jp      .autoAdvance
 
 .aligned
@@ -1578,25 +1580,25 @@ bgSprite2bpp:
     sla     l           ; restore L minus bit
     add     hl, bc
 
-    call    render2bppTile
+    call    Render2bppTile
 
 .yOutOfRange
 .xOutOfRange
 .autoAdvance
 
     ld      d, 16    ; 16 byte offset between 2bpp tiles
-    call    applyAutoAdjustments
-    jp      nz, bgSprite2bpp
+    call    ApplyAutoAdjustments
+    jp      nz, BGSprite2bpp
 
     ret
 
 
 ; d = device
 ; bc = data
-dev_screen_deo2:
+DevScreenDEO2:
     ret
 
-dev_nil::
+DevNil::
     ret
 
 SECTION "Y*320 VRAM Table", ROM0, ALIGN[6]
@@ -1607,15 +1609,6 @@ dw 0+$8000, 1*320+$8000, 2*320+$8000, 3*320+$8000, 4*320+$8000, 5*320+$8000, 6*3
 dw 13*320+$7FC0, 14*320+$7FC0, 15*320+$7FC0, 16*320+$7FC0, 17*320+$7FC0, 18*320+$7FC0
 
 SECTION "Varvara Blending", ROM0, ALIGN[8] ; TODO: May not need align[8]
-
-; How Varvara blending works:
-; - Blending value passed to screen_blit as 'color'
-; - Each blending value (0 to f) has an associated opaque value (blending[5] in uxnemu)
-; - 'c' (???) calculated as:
-;   - 0xAABB (1bpp: AA=0, BB=sprite data, 2bpp: AA=high byte data, BB=low byte data)
-; - 'ch' (channel?) calculated as:
-;   - 0xCD (C = low bit, D = high bit) -> uxnemu loops through h, taking a bit each time
-; - if opaque OR ch, write pixel of color blending[ch][color]
 
 PixelBlendingTable:
     db 0, 0, 1, 2
@@ -1635,6 +1628,7 @@ PixelBlendingTable:
     db 3, 2, 3, 1
     db 0, 3, 1, 2
 
+; TODO: Apply opaque table!
 ; OpaqueTable:
 ;     db 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0
 

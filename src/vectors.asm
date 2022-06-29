@@ -174,7 +174,7 @@ VBlankHandler:
     jr      nz, .notASecond
     ld      a, 60
     ld      [hl], a
-    ld      hl, devices + $c6
+    ld      hl, wDevices + $c6
     ld      a, [hl]
     inc     a
     cp      60
@@ -326,7 +326,7 @@ ENDR
     or      c       ; merge dpad+buttons
     pop     hl
 
-    ld      [devices + $82], a
+    ld      [wDevices + $82], a
 
     pop     bc
 

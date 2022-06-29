@@ -1539,7 +1539,7 @@ _JSR::
 
     ; Offset back to UXN address, in case someone does some direct manipulation
     ; TODO: Account for banking!
-    ld      hl, $ffff & -uxn_memory
+    ld      hl, $ffff & -eUXNMemory
     add     hl, bc
     ld      b, h
     ld      c, l
@@ -1586,7 +1586,7 @@ _JSRr::
 
     ; Offset back to UXN address, in case someone does some direct manipulation
     ; TODO: Account for banking!
-    ld      hl, $ffff & -uxn_memory
+    ld      hl, $ffff & -eUXNMemory
     add     hl, bc
     ld      b, h
     ld      c, l
@@ -1618,7 +1618,7 @@ _JSRk::
 
     ; Offset back to UXN address, in case someone does some direct manipulation
     ; TODO: Account for banking!
-    ld      hl, $ffff & -uxn_memory
+    ld      hl, $ffff & -eUXNMemory
     add     hl, bc
     ld      b, h
     ld      c, l
@@ -1649,7 +1649,7 @@ _JSRkr::
 
     ; Offset back to UXN address, in case someone does some direct manipulation
     ; TODO: Account for banking!
-    ld      hl, $ffff & -uxn_memory
+    ld      hl, $ffff & -eUXNMemory
     add     hl, bc
     ld      b, h
     ld      c, l
@@ -1731,7 +1731,7 @@ _JSR2::
     push    hl
     ; Offset back to UXN address, in case someone does some direct manipulation
     ; TODO: Account for banking!
-    ld      hl, $ffff & -uxn_memory
+    ld      hl, $ffff & -eUXNMemory
     add     hl, bc
     ld      b, h
     ld      c, l
@@ -1754,7 +1754,7 @@ _JMP2::
 .continue
     ld      b, [hl]
 .jump
-    ld      hl, uxn_memory
+    ld      hl, eUXNMemory
     add     hl, bc
     ld      a, h
     ldh     [pc], a
@@ -1773,7 +1773,7 @@ _JSR2r::
     push    hl
     ; Offset back to UXN address, in case someone does some direct manipulation
     ; TODO: Account for banking!
-    ld      hl, $ffff & -uxn_memory
+    ld      hl, $ffff & -eUXNMemory
     add     hl, bc
     ld      b, h
     ld      c, l
@@ -1807,7 +1807,7 @@ _JSR2k::
     push    hl
     ; Offset back to UXN address, in case someone does some direct manipulation
     ; TODO: Account for banking!
-    ld      hl, $ffff & -uxn_memory
+    ld      hl, $ffff & -eUXNMemory
     add     hl, bc
     ld      b, h
     ld      c, l
@@ -1840,7 +1840,7 @@ _JSR2kr::
     push    hl
     ; Offset back to UXN address, in case someone does some direct manipulation
     ; TODO: Account for banking!
-    ld      hl, $ffff & -uxn_memory
+    ld      hl, $ffff & -eUXNMemory
     add     hl, bc
     ld      b, h
     ld      c, l
@@ -1964,7 +1964,7 @@ _STH2kr::
 _LDZ::
     WST_HL_dec
 .continue
-    ld      b, HIGH(zero_page)
+    ld      b, HIGH(eZeroPage)
     ld      c, [hl]
     ld      a, [bc]
     ld      [hl], a
@@ -1978,7 +1978,7 @@ _LDZr::
 ; LDZk addr8 -- addr8 value
 _LDZk::
     WST_HL_dec
-    ld      b, HIGH(zero_page)
+    ld      b, HIGH(eZeroPage)
     ld      c, [hl]
     ld      a, [bc]
     inc     l
@@ -1989,7 +1989,7 @@ _LDZk::
 ; LDZkr addr8 -- addr8 value
 _LDZkr::
     RST_HL_dec
-    ld      b, HIGH(zero_page)
+    ld      b, HIGH(eZeroPage)
     ld      c, [hl]
     ld      a, [bc]
     inc     l
@@ -2000,7 +2000,7 @@ _LDZkr::
 ; LDZ addr8 -- value
 _LDZ2::
     WST_HL_dec
-    ld      b, HIGH(zero_page)
+    ld      b, HIGH(eZeroPage)
     ld      c, [hl]
     ld      a, [bc]
     ld      [hli], a
@@ -2014,7 +2014,7 @@ _LDZ2::
 ; TODO: Consider all RST tweaking at the start so we can jump to _LDZ2 to save bytes
 _LDZ2r::
     RST_HL_dec
-    ld      b, HIGH(zero_page)
+    ld      b, HIGH(eZeroPage)
     ld      c, [hl]
     ld      a, [bc]
     ld      [hli], a
@@ -2027,7 +2027,7 @@ _LDZ2r::
 ; LDZk addr8 -- addr8 value
 _LDZ2k::
     WST_HL_dec
-    ld      b, HIGH(zero_page)
+    ld      b, HIGH(eZeroPage)
     ld      c, [hl]
     ld      a, [bc]
     inc     l
@@ -2041,7 +2041,7 @@ _LDZ2k::
 ; LDZkr addr8 -- addr8 value
 _LDZ2kr::
     RST_HL_dec
-    ld      b, HIGH(zero_page)
+    ld      b, HIGH(eZeroPage)
     ld      c, [hl]
     ld      a, [bc]
     inc     l
@@ -2055,7 +2055,7 @@ _LDZ2kr::
 ; STZ value addr8 --
 _STZ::
     WST_HL_dec
-    ld      b, HIGH(zero_page)
+    ld      b, HIGH(eZeroPage)
     ld      c, [hl]
     dec     l
     ld      a, [hl]
@@ -2066,7 +2066,7 @@ _STZ::
 ; STZr value addr8 --
 _STZr::
     RST_HL_dec
-    ld      b, HIGH(zero_page)
+    ld      b, HIGH(eZeroPage)
     ld      c, [hl]
     dec     l
     ld      a, [hl]
@@ -2078,7 +2078,7 @@ _STZr::
 _STZk::
     WST_HL_dec
 .continue
-    ld      b, HIGH(zero_page)
+    ld      b, HIGH(eZeroPage)
     ld      c, [hl]
     dec     l
     ld      a, [hl]
@@ -2093,7 +2093,7 @@ _STZkr::
 ; STZ value addr8 --
 _STZ2::
     WST_HL_dec
-    ld      b, HIGH(zero_page)
+    ld      b, HIGH(eZeroPage)
     ld      c, [hl]
     inc     c
     dec     l
@@ -2108,7 +2108,7 @@ _STZ2::
 ; STZr value addr8 --
 _STZ2r::
     RST_HL_dec
-    ld      b, HIGH(zero_page)
+    ld      b, HIGH(eZeroPage)
     ld      c, [hl]
     inc     c
     dec     l
@@ -2125,7 +2125,7 @@ _STZ2k::
     ; TODO: Same as _STZ2 without the final WST_PTR_L, any way to reuse?
     WST_HL_dec
 .continue
-    ld      b, HIGH(zero_page)
+    ld      b, HIGH(eZeroPage)
     ld      c, [hl]
     inc     c
     dec     l
@@ -2628,7 +2628,7 @@ _DEI::
 
     ; DEVPEEK8
     push    hl
-    ld      hl, devices
+    ld      hl, wDevices
     ld      a, d
     add     l
     ld      l, a
@@ -2643,7 +2643,7 @@ _DEI::
     and     $F0
     srl     a
     ;add     0       ; DEI handler offset
-    ld      hl, device_handlers
+    ld      hl, DeviceHandlers
     add     l
     ld      l, a    ; LUT uses ALIGN[7], so no need to worry about carry
     ld      a, [hli]
@@ -2694,7 +2694,7 @@ _DEI2::
 
     ; DEVPEEK16
     push    hl
-    ld      hl, devices
+    ld      hl, wDevices
     ld      a, d
     add     l
     ld      l, a
@@ -2711,7 +2711,7 @@ _DEI2::
     and     $F0
     srl     a
     add     2       ; DEI2 handler offset
-    ld      hl, device_handlers
+    ld      hl, DeviceHandlers
     add     l
     ld      l, a    ; LUT uses ALIGN[7], so no need to worry about carry
     ld      a, [hli]
@@ -2764,7 +2764,7 @@ _DEO::
     ld      b, [hl]
 
     ; DEVPOKE8
-    ld      hl, devices
+    ld      hl, wDevices
     ld      a, d
     add     l
     ld      l, a
@@ -2776,7 +2776,7 @@ _DEO::
     and     $F0
     srl     a
     add     4       ; DEO handler offset
-    ld      hl, device_handlers
+    ld      hl, DeviceHandlers
     add     l
     ld      l, a    ; LUT uses ALIGN[7], so no need to worry about carry
     ld      a, [hli]
@@ -2819,7 +2819,7 @@ _DEO2::
     WST_PTR_L
 .continue
     ; DEVPOKE16
-    ld      hl, devices
+    ld      hl, wDevices
     ld      a, d
     add     l
     ld      l, a
@@ -2833,7 +2833,7 @@ _DEO2::
     and     $F0
     srl     a
     add     6       ; DEO2 handler offset
-    ld      hl, device_handlers
+    ld      hl, DeviceHandlers
     add     l
     ld      l, a    ; LUT uses ALIGN[7], so no need to worry about carry
     ld      a, [hli]

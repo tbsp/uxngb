@@ -15,9 +15,6 @@ ELSE
 
 ENDC
 
-DEF PageProgram     EQU $0100
-
-
 SECTION "UXN HRAM", HRAM
 pc::        ds 2
 wst_ptr::   ds 1    ; should exist as the second last byte in the wst (programs that depend on that will fail right now)
@@ -29,12 +26,12 @@ w_st::      ds 256
 r_st::      ds 256
 
 SECTION "UXN Devices", WRAM0, ALIGN[8]
-devices::   ds 16*16
+wDevices::  ds 16*16
 
 SECTION "UXN Memory", SRAM[$A000]
-uxn_memory::
-zero_page::     ds 256
-page_program::
+eUXNMemory::
+eZeroPage::     ds 256
+ePageProgram::
 
 SECTION "General WRAM", WRAM0
 wPendingPalettes::  ds 16   ; one full BG and OBJ palette for CGB
@@ -44,7 +41,7 @@ SECTION "Intro", ROM0
 
 Intro::
     ; call mode-specific initialization
-    call    mode_init
+    call    ModeInit
 
     ; Initialize emulator state
 
@@ -55,16 +52,16 @@ Intro::
     ld      [$00], a    ; enable SRAM access
 
     ; Initialize device memory
-    ld      de, device_defaults
-    ld      hl, devices
+    ld      de, DefaultDefaults
+    ld      hl, wDevices
     ld      c, 0
     rst     MemcpySmall
 
     ; uxn_boot
     ; initialize the single bank of external RAM we're currently using
-    ; TODO: If we expand to support the full 64KB UXN memory space, clear all 8 banks instead
+    ; TODO: If we expand to support the full 64KB UXN memory space, clear all 8 banks
     xor     a
-    ld      hl, uxn_memory
+    ld      hl, eUXNMemory
     ld      bc, $2000
     rst     Memset
 
@@ -75,14 +72,14 @@ Intro::
     ; Copy entire ROM external RAM
     ; TODO: Copy in banks
     ld      de, staticROM
-    ld      hl, page_program
+    ld      hl, ePageProgram
     ld      bc, $2000-$100 ; Blindly copy the 8KB maximum supported ROM size minus the zero page
     call    Memcpy
 
     ; initialize PC
-    ld      a, HIGH(page_program)
+    ld      a, HIGH(ePageProgram)
     ldh     [pc], a
-    ld      a, LOW(page_program)
+    ld      a, LOW(ePageProgram)
     ldh     [pc+1], a
 
     ; initial eval loop
@@ -91,7 +88,7 @@ Intro::
 brk_loop:
     ; BRK idles, calling vector handlers as required once per VBlank
     rst     WaitVBlank
-    call    vector_handlers
+    call    VectorHandlers
     jr      brk_loop
 
 system_halt:

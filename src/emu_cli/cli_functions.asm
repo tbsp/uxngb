@@ -1,6 +1,6 @@
 SECTION "UXNCLI Functions", ROM0
 
-mode_init:
+ModeInit:
     ; Load console font
     ld      de, FontTiles
     ld      hl, $8000
@@ -9,9 +9,9 @@ mode_init:
 
     ; Setup console cursor
     ld      a, HIGH($9800)
-    ld      [cursor_addr], a
+    ld      [wCursorAddr], a
     ld      a, LOW($9800)
-    ld      [cursor_addr+1], a
+    ld      [wCursorAddr+1], a
 
     ; Clear console
     ld      hl, $9800
