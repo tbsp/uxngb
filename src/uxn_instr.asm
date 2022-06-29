@@ -379,10 +379,9 @@ _NIPr::
 _NIPk::
     jp      _DUP
 
-; NIPkr a b -- a b
+; NIPkr a b -- a b b
 _NIPkr::
-    ; TODO: is this right?
-    ret
+    jp      _DUPr
 
 ; NIP2 a b c d -- c d
 _NIP2::
@@ -432,7 +431,7 @@ _SWP::
 _SWPr::
     ld      h, HIGH(wRST)
     ldh     a, [hRSTPtr]
-    jr      _SWP.continue ; TODO: Move to use jr
+    jr      _SWP.continue
 
 ; SWPk a b -- a b b a
 _SWPk::
@@ -540,7 +539,7 @@ _ROT::
 _ROTr::
     ld      h, HIGH(wRST)
     ldh     a, [hRSTPtr]
-    jr      _ROT.continue ; TODO: Move to use jr
+    jr      _ROT.continue
 
 ; ROTk a b c -- a b c b c a
 _ROTk::
@@ -1815,7 +1814,7 @@ _JMP2r::
     ld      c, [hl]
     dec     l
     RST_PTR_L
-    jr      _JMP2.continue ; TODO: Move calls to within jr range
+    jr      _JMP2.continue
 
 ; JSR2k addr -- addr
 _JSR2k::
