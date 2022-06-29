@@ -6,6 +6,9 @@ No effort has gone into optimizing for performance, aside from trying to avoid w
 
 You can download a binary build [here](https://github.com/tbsp/uxngb/releases). Binaries with a variety of UXN ROMs appended are also available there.
 
+- `hello-*` UXN ROMs built using code from [compudanza's uxn tutorial series](https://compudanzas.net/uxn_tutorial.html), used under the [peer production license](https://wiki.p2pfoundation.net/Peer_Production_License).
+- All other UXN ROMs built (some with minor modifications to fit the GB screen) using code from [100 Rabbits](https://git.sr.ht/~rabbits/uxn/tree/main), copyright (c) Devine Lu Linvega under the [MIT license](https://opensource.org/licenses/MIT).
+
 ## Screenshots
 
 ![uxnemu_catclock](https://user-images.githubusercontent.com/10489588/176349457-68669912-c901-4946-8060-08c3a0110e2c.png)
