@@ -1,6 +1,6 @@
 DEF MODE_CLI        EQU $00 ; mode with console input/output devices
 DEF MODE_VARVARA    EQU $01 ; mode with varvara compliant devices (very slow Screen due to lack of bitmap graphical hardware support)
-DEF MODE_TILED      EQU $02 ; mode with tile-based devices for improved performance on tile-based hardware
+DEF MODE_TILED      EQU $02 ; mode with tile-based devices for improved performance on tile-based hardware (notional)
 
 DEF MODE            EQU MODE_VARVARA
 
@@ -175,4 +175,3 @@ SECTION "End Pad", ROM0[$3FFF]
 ; Attachment point for appended UXN ROM
 SECTION "UXN ROM", ROMX[$4000]
 staticROM:
-    ;incbin "roms/snake_gb.rom"
