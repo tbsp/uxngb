@@ -127,25 +127,23 @@ uxn_eval:
     ld      h, a
     ldh     a, [hPC+1]
     ld      l, a
-    ld      b, [hl]     ; read next instruction
+    ld      a, [hli]    ; read next instruction, increment PC
 
-    ld      a, b        ; see if we've hit a BRK
-    or      a
-    ret     z           ; break out of eval loop
+    ; obtain instruction handler address
+    ld      b, HIGH(instr_jump_table)
+    add     a
+    jr      nc, .local
+    inc     b
+.local
+    ld      c, a
 
-    inc     hl          ; increment PC, and store new value
-    ld      a, h
+    ld      a, h        ; store new PC value
     ldh     [hPC], a
     ld      a, l
     ldh     [hPC+1], a
 
-    ld      a, b
-    ld      b, 0
-    sla     a           ; get jump table offset for instruction handler
-    ld      c, a
-    rl      b
-    ld      hl, instr_jump_table
-    add     hl, bc
+    ld      h, b
+    ld      l, c
     ld      a, [hli]
     ld      h, [hl]
     ld      l, a
@@ -154,7 +152,7 @@ uxn_eval:
     jr      uxn_eval
 
 
-SECTION "Instruction Jump Table", ROM0
+SECTION "Instruction Jump Table", ROM0, ALIGN[8] ; Aligned to speed up instruction dispatch
 instr_jump_table:
     ;   0x00     0x01     0x02     0x03     0x04     0x05     0x06     0x07     0x08     0x09     0x0A     0x0B     0x0C     0x0D     0x0E     0x0F
     ; 0x00

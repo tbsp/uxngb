@@ -104,8 +104,9 @@ JumpToPtr::
 ; Soft-crashes if attempting to jump to RAM
 ; @param hl The address of the code to jump to
 CallHL::
-    bit 	7, h
-    error 	nz
+    ; Note: Error checking disabled to speed up instruction dispatch
+    ;bit 	7, h
+    ;error 	nz
     jp 		hl
 
 SECTION "Rst $30", ROM0[$30]
@@ -328,13 +329,13 @@ ENDR
     ; TODO: There has to be a faster way to do this!
     ld      b, a    ; cache original byte
     swap    a
-    srl     a       ; get R bit
+    rrca            ; get R bit
     rl      c       ; push R bit
-    srl     a       ; get L bit
+    rrca            ; get L bit
     rl      c       ; push L bit
-    srl     a       ; get U bit
+    rrca            ; get U bit
     rl      h       ; cache U bit
-    srl     a       ; get D bit
+    rrca            ; get D bit
     rl      c       ; push D bit
     srl     h       ; recover U bit
     rl      c       ; push U bit
