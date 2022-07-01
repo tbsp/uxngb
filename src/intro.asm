@@ -123,24 +123,25 @@ uxn_eval:
     ; TODO: check shutdown vector (dev:$0f)
     ; TODO: check hWSTPtr
 
-    ldh     a, [hPC]
-    ld      h, a
-    ldh     a, [hPC+1]
-    ld      l, a
-    ld      a, [hli]    ; read next instruction, increment PC
+    ; Thanks jvsTSX! Saved one cycle!
+    ld      hl, hPC     ; get current PC
+    ld      a, [hli]
+    ld      c, [hl]
+    ld      b, a
+
+    ld      a, [bc]     ; read next instruction
+    inc     bc          ; increment PC
+
+    ld      [hl], c     ; save updated PC
+    dec     l
+    ld      [hl], b
 
     ; obtain instruction handler address
     ld      b, HIGH(instr_jump_table)
     add     a
-    jr      nc, .local
+    jr      nc, :+
     inc     b
-.local
-    ld      c, a
-
-    ld      a, h        ; store new PC value
-    ldh     [hPC], a
-    ld      a, l
-    ldh     [hPC+1], a
+:   ld      c, a
 
     ld      h, b
     ld      l, c
