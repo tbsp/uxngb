@@ -3176,42 +3176,6 @@ _MULkr::
     dec     a
     jr      _MULk.continue
 
-; MUL2 a b c d -- e f
-_MUL2::
-    WST_HL_dec
-    ld      c, [hl]
-    dec     l
-    WST_PTR_L
-.continue
-    ld      b, [hl]
-    dec     l
-    ld      e, [hl]
-    dec     l
-    ld      d, [hl]
-    push    hl
-
-    ; http://map.grauw.nl/articles/mult_div_shifts.php
-
-    ld      a, b
-    ld      b, 16
-.loop
-    add     hl, hl
-    sla     c
-    rla
-    jr      nc, .noAdd
-    add     hl,de
-.noAdd
-    dec     b
-    jr      nz, .loop
-    ld      b, h
-    ld      a, l
-
-    pop     hl
-    ld      [hl], b
-    inc     l
-    ld      [hl], a
-    ret
-
 ; MUL2r a b c d -- e f
 _MUL2r::
     RST_HL_dec
@@ -3220,38 +3184,82 @@ _MUL2r::
     RST_PTR_L
     jr      _MUL2.continue
 
+; MUL2 a b c d -- e f
+_MUL2::
+    WST_HL_dec
+    ld      c, [hl]
+    dec     l
+    WST_PTR_L
+.continue
+    ld      a, [hld]
+    ld      e, [hl]
+    dec     l
+    ld      d, [hl]
+    push    hl
+
+    ; http://map.grauw.nl/articles/mult_div_shifts.php
+
+    REPT 16
+    add     hl, hl
+    sla     c
+    rla
+    jr      nc, :+
+    add     hl,de
+:
+    ENDR
+
+    ld      a, h
+    ld      b, l
+
+    pop     hl
+    ld      [hli], a
+    ld      [hl], b
+    ret
+
+; MUL2kr a b c d -- a b c d e f
+_MUL2kr::
+    RBIT_2K_SETUP
+    ld      d, [hl]
+    inc     l
+    ld      e, [hl]
+    inc     l
+    ld      a, [hli]
+    ld      c, [hl]
+    inc     l
+    jr      _MUL2k.finally
+
 ; MUL2k a b c d -- a b c d e f
 _MUL2k::
-    WMATH_2K_SETUP
+    ; Macro unrolled to optimize
+    WBIT_2K_SETUP
+    ld      d, [hl]
+    inc     l
+    ld      e, [hl]
+    inc     l
+    ld      a, [hli]
+    ld      c, [hl]
+    inc     l
 .finally
     push    hl
 
     ; http://map.grauw.nl/articles/mult_div_shifts.php
 
-    ld      a, b
-    ld      b, 16
-.loop
+    REPT 16
     add     hl, hl
     sla     c
     rla
-    jr      nc, .noAdd
+    jr      nc, :+
     add     hl,de
-.noAdd
-    dec     b
-    jr      nz, .loop
-    ld      b, h
-    ld      a, l
+:
+    ENDR
+
+    ld      a, h
+    ld      b, l
 
     pop     hl
+    ld      [hli], a
     ld      [hl], b
-    inc     l
-    ld      [hl], a
     ret
-
-; MUL2kr a b c d -- a b c d e f
-_MUL2kr::
-    RMATH_2K_SETUP
-    jr      _MUL2k.finally
 
 ; DIV a b -- c
 _DIV::
