@@ -26,6 +26,9 @@ _MD16count: db
 
 SECTION "UXN Instructions", ROM0
 
+; We take advantage of the fact these are next to eachother for some optimizations
+ASSERT(HIGH(wRST) == HIGH(wWST) + 1)
+
 ; UXN Instruction Implementations
 
 ; Support macros
@@ -1884,46 +1887,56 @@ _JMP2kr::
     jr      _JMP2.continue
     
 ; STH a --
-; TODO: Check if removing macros opens up optimizations
 _STH::
-    WST_HL_dec
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
+    dec     a
+    ldh     [hWSTPtr], a
+    ld      l, a
     ld      b, [hl]
-    WST_PTR_L   ; destroys A
-    RST_HL      ; destroys A
+    inc     h   ; point to HIGH(wRST)
+    ldh     a, [hRSTPtr]
+    ld      l, a
     ld      [hl], b
     inc     l
     RST_PTR_L
     ret
 
 ; STHr a --
-; TODO: Check if removing macros opens up optimizations
 _STHr::
-    RST_HL_dec
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
+    dec     a
+    ldh     [hRSTPtr], a
+    ld      l, a
     ld      b, [hl]
-    RST_PTR_L   ; destroys A
-    WST_HL      ; destroys A
+    dec     h   ; point to HIGH(wWST)
+    ldh     a, [hWSTPtr]
+    ld      l, a
     ld      [hl], b
     inc     l
     WST_PTR_L
     ret
 
 ; STHk a -- a
-; TODO: Check if removing macros opens up optimizations
 _STHk::
     WST_HL_dec
     ld      b, [hl]
-    RST_HL
+    inc     h   ; point to HIGH(wRST)
+    ldh     a, [hRSTPtr]
+    ld      l, a
     ld      [hl], b
     inc     l
     RST_PTR_L
     ret
 
 ; STHkr a -- a
-; TODO: Check if removing macros opens up optimizations
 _STHkr::
     RST_HL_dec
     ld      b, [hl]
-    WST_HL
+    dec     h   ; point to HIGH(wWST)
+    ldh     a, [hWSTPtr]
+    ld      l, a
     ld      [hl], b
     inc     l
     WST_PTR_L
@@ -1937,7 +1950,9 @@ _STH2::
     ld      c, [hl]
     WST_PTR_L   ; destroys A
 .continue
-    RST_HL      ; destroys A
+    inc     h   ; point to HIGH(wRST)
+    ldh     a, [hRSTPtr]
+    ld      l, a
     ld      [hl], c
     inc     l
     ld      [hl], b
@@ -1952,7 +1967,9 @@ _STH2r::
     dec     l
     ld      c, [hl]
     RST_PTR_L   ; destroys A
-    WST_HL      ; destroys A
+    dec     h   ; point to HIGH(wWST)
+    ldh     a, [hWSTPtr]
+    ld      l, a
     ld      [hl], c
     inc     l
     ld      [hl], b
@@ -1974,7 +1991,9 @@ _STH2kr::
     ld      b, [hl]
     dec     l
     ld      c, [hl]
-    WST_HL      ; destroys A
+    dec     h   ; point to HIGH(wWST)
+    ldh     a, [hWSTPtr]
+    ld      l, a
     ld      [hl], c
     inc     l
     ld      [hl], b
@@ -2953,12 +2972,11 @@ _ADD2::
     dec     l
     ld      b, [hl]
     dec     l
-    ld      e, [hl]
-    dec     l
+    ld      a, [hld]
     ld      d, [hl]
     push    hl
     ld      h, d
-    ld      l, e
+    ld      l, a
     add     hl, bc
     ld      a, h
     ld      e, l
