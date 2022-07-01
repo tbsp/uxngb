@@ -167,62 +167,119 @@ _NIL::
 
 ; LIT -- a
 _LIT::
-    PC_to_B
-    inc     hl          ; increment PC, and store new value
-    ld      a, h
-    ldh     [hPC], a
-    ld      a, l
-    ldh     [hPC+1], a
-    WST_HL
-    ld      [hl], b     ; push onto wst
-    inc     l           ; inc stack ptr
-    WST_PTR_L
+    ; Thanks jvsTSX for help optimizing the PC increment code!
+
+    ld      hl, hPC     ; get current PC
+    ld      a, [hli]
+    ld      c, [hl]
+    ld      b, a
+
+    ld      d, HIGH(wWST)
+    ldh     a, [hWSTPtr]
+    ld      e, a
+    
+    ld      a, [bc]     ; literal value
+
+    inc     bc          ; increment PC
+    ld      [hl], c     ; save updated PC
+    dec     l
+    ld      [hl], b
+
+    ld      [de], a     ; push onto wst
+    inc     e           ; inc stack ptr
+
+    ld      a, e
+    ldh     [hWSTPtr], a
+
     ret
 
 ; LITr -- a
 _LITr::
-    PC_to_B
-    inc     hl          ; increment PC, and store new value
-    ld      a, h
-    ldh     [hPC], a
-    ld      a, l
-    ldh     [hPC+1], a
-    RST_HL
-    ld      [hl], b     ; push onto wst
-    inc     l           ; inc stack ptr
-    RST_PTR_L
+    ld      hl, hPC     ; get current PC
+    ld      a, [hli]
+    ld      c, [hl]
+    ld      b, a
+
+    ld      d, HIGH(wRST)
+    ldh     a, [hRSTPtr]
+    ld      e, a
+    
+    ld      a, [bc]     ; literal value
+
+    inc     bc          ; increment PC
+    ld      [hl], c     ; save updated PC
+    dec     l
+    ld      [hl], b
+
+    ld      [de], a     ; push onto wst
+    inc     e           ; inc stack ptr
+
+    ld      a, e
+    ldh     [hRSTPtr], a
+
     ret
 
 ; LIT2 -- a
 _LIT2::
-    PC_to_HL
-    ld      b, [hl]
-    inc     hl      ; must be a 16bit inc
+    ld      hl, hPC     ; get current PC
+    ld      a, [hli]
     ld      c, [hl]
-    inc     hl      ; must be a 16bit inc
-    HL_to_PC
-    WST_HL
+    ld      b, a
+
+    ld      a, [bc]     ; read literal short into DE
+    ld      d, a
+    inc     bc
+    ld      a, [bc]
+    ld      e, a
+    inc     bc
+
+    ld      [hl], c     ; save updated PC
+    dec     l
     ld      [hl], b
+
+    ld      h, HIGH(wWST)
+    ldh     a, [hWSTPtr]
+    ld      l, a
+
+    ld      [hl], d
     inc     l
-    ld      [hl], c
+    ld      [hl], e
     inc     l
-    WST_PTR_L
+
+    ld      a, l
+    ldh     [hWSTPtr], a
+
     ret
 
 ; LIT2r -- a
 _LIT2r::
-    PC_to_HL
-    ld      b, [hl]
-    inc     hl      ; must be a 16bit inc
+    ld      hl, hPC     ; get current PC
+    ld      a, [hli]
     ld      c, [hl]
-    inc     hl      ; must be a 16bit inc
-    HL_to_PC
-    RST_HL
+    ld      b, a
+
+    ld      a, [bc]     ; read literal short into DE
+    ld      d, a
+    inc     bc
+    ld      a, [bc]
+    ld      e, a
+    inc     bc
+
+    ld      [hl], c     ; save updated PC
+    dec     l
     ld      [hl], b
+
+    ld      h, HIGH(wRST)
+    ldh     a, [hRSTPtr]
+    ld      l, a
+
+    ld      [hl], d
     inc     l
-    ld      [hl], c
+    ld      [hl], e
     inc     l
-    RST_PTR_L
+
+    ld      a, l
+    ldh     [hRSTPtr], a
     ret
 
 ; INC a -- b
