@@ -3347,17 +3347,16 @@ _DIV::
 
     ; Source: http://map.grauw.nl/articles/mult_div_shifts.php
     xor     a
-    ld      b, 8
-.loop
+
+    REPT 8
     rl      e
     rla
     sub     c
-    jr      nc, .noAdd
+    jr      nc, :+
     add     a, c
-.noAdd
-    dec     b
-    jr      nz, .loop
-    ld      b, a
+:
+    ENDR
+
     ld      a, e
     rla
     cpl
@@ -3386,17 +3385,16 @@ _DIVk::
 
     ; Source: http://map.grauw.nl/articles/mult_div_shifts.php
     xor     a
-    ld      b, 8
-.loop
+
+    REPT 8
     rl      e
     rla
     sub     c
-    jr      nc, .noAdd
+    jr      nc, :+
     add     a, c
-.noAdd
-    dec     b
-    jr      nz, .loop
-    ld      b, a
+:
+    ENDR
+
     ld      a, e
     rla
     cpl
