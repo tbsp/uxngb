@@ -248,8 +248,8 @@ ConvertTwoShades:
     ld      a, [hli]    ; red
     inc     l
     and     %00001100
-    sla     a
-    sla     a
+    add     a
+    add     a
     ld      b, a
     ld      a, [hli]    ; green
     inc     l
@@ -327,13 +327,13 @@ ConvertTwoColors:
     inc     l
     and     $f0
     swap    a
-    sla     a
+    add     a
     ld      e, a
     ld      a, [hli]    ; green
     inc     l
     and     $f0
     ld      d, a
-    sla     a
+    add     a
     or      e
     ld      [bc], a     ; low byte of color 0
     inc     bc
@@ -355,14 +355,14 @@ ConvertTwoColors:
     ld      a, [hli]    ; red
     inc     l
     and     $0f
-    sla     a
+    add     a
     ld      e, a
     ld      a, [hli]    ; green
     inc     l
     and     $0f
     ld      d, a
     swap    a
-    sla     a
+    add     a
     or      e
     ld      [bc], a     ; low byte of color 1
     inc     bc
@@ -498,8 +498,8 @@ DevScreenDEO::
     ldh     a, [hDataByte]
     and     $0f         ; only retain blend nibble
     ld      hl, PixelBlendingTable
-    sla     a
-    sla     a
+    add     a
+    add     a
     add     l
     ld      l, a
     adc     h
@@ -525,14 +525,14 @@ DevScreenDEO::
     ldh     [hAutoAddr], a
     ld      a, c
     and     %00000001   ; autoX * 8 for deltaX
-    sla     a
-    sla     a
-    sla     a
+    add     a
+    add     a
+    add     a
     ldh     [hDeltaX], a
     ld      a, c
     and     %00000010   ; autoX * 8 for deltaY
-    sla     a
-    sla     a
+    add     a
+    add     a
     ldh     [hDeltaY], a
 
     ld      a, b    ; get hDataByte
@@ -652,7 +652,7 @@ PixelDraw:
     ; Add non-aligned Y
     ldh     a, [hPixelY]
     and     %00000111   ; retain only sub-tile component
-    sla     a           ; double (2 bytes per pixel row)
+    add     a           ; double (2 bytes per pixel row)
     ld      c, a
     ld      b, 0
     add     hl, bc
@@ -817,8 +817,8 @@ LocateTargetSpriteTileVRAM:
 
     ; Calculate VRAM address from table low byte value
     ld      a, c
-    sla     a
-    sla     a
+    add     a
+    add     a
     ld      c, a
     ld      b, 0
     ld      hl, vForegroundTiles
@@ -889,7 +889,7 @@ CreateOAMEntry:
     ld      [hli], a
     ldh     a, [hDataByte]      ; apply tile flips to hardware object
     and     %00110000           ; only retain flip bits
-    sla     a                   ; UXN flip bits are shifted one over from GB
+    add     a                   ; UXN flip bits are shifted one over from GB
     ld      [hli], a
 
 .resume
@@ -1062,63 +1062,50 @@ Render1bppTile:
 .vLoop
     ld      a, [de]     ; setup working bytes for this 8-pixel row
     inc     de
-    ldh     [hWorkingBytes], a
-    xor     a           ; high byte is always zero for 1bpp
-    ldh     [hWorkingBytes+1], a
+    push    de
+    ld      d, a
+    ld      e, 0        ; high byte is always zero for 1bpp
 
     push    hl
 
+    ld      h, HIGH(wPixelBlend)
     ld      c, 8        ; bit counter
 .bitLoop
-    push    bc
-    ldh     a, [hWorkingBytes]
-    ld      b, a
-    ldh     a, [hWorkingBytes+1]
-    ld      c, a
-
     xor     a
-    sla     c           ; shift high bit into carry
+    sla     e           ; shift high bit into carry
     rl      a           ; shift carry into A
-    sla     b           ; shift low bit into carry
+    sla     d           ; shift low bit into carry
     rl      a           ; shift carry into A (now 'ch' 0-3 for a given pixel)
 
-    ld      h, HIGH(wPixelBlend)
     ld      l, a
-    ld      h, [hl]     ; H = blended pixel value (0-3)
+    ld      l, [hl]     ; H = blended pixel value (0-3)
 
-    ldh     a, [hWorkingBytes]
-    rr      h           ; shift low bit into carry
-    rl      a           ; shift low bit into low working byte
-    ldh     [hWorkingBytes], a
-    ldh     a, [hWorkingBytes+1]
-    rr      h           ; shift high bit into carry
-    rl      a           ; shift high bit into high working byte
-    ldh     [hWorkingBytes+1], a
+    rr      d           ; shimmy bits back
+    rr      l           ; shift low bit into carry
+    rl      d           ; shift low bit into low working byte
+    rr      e           ; shimmy bits back
+    rr      l           ; shift high bit into carry
+    rl      e           ; shift hit bit into high working byte
 
-    pop     bc
     dec     c
     jr      nz, .bitLoop
     
     pop     hl
 
-    ; Try to be as fast as possible with VRAM writes due to DMG issues with STAT interrupt
-    ldh     a, [hWorkingBytes]
-    ld      c, a
-
     ; working byte is now ready, copy to VRAM
 :   ldh     a, [rSTAT]
     and     STATF_BUSY
     jr      nz, :-
-    ld      [hl], c
+    ld      [hl], d
     inc     l
-    ldh     a, [hWorkingBytes+1]
-    ld      c, a
 
 :   ldh     a, [rSTAT]
     and     STATF_BUSY
     jr      nz, :-
-    ld      [hl], c
+    ld      [hl], e
     inc     l
+
+    pop     de
 
     dec     b
     jr      nz, .vLoop
@@ -1210,8 +1197,6 @@ BGSprite1bpp:
     ; y/8*20*16
     srl     a   ; y/8
     srl     a
-    ;srl     a
-    ;sla     a   ; double for table which stores words
     and     %11111110
     ld      hl, Y_TIMES_320_VRAM
     add     l
@@ -1417,49 +1402,38 @@ Render2bppTile:
     ld      b, 8        ; byte counter
 .vLoop
 
-    push    hl
-
     ld      a, [de]     ; setup working bytes for this 8-pixel row
-    ld      hl, $0008   ; UXN tile data isn't interlaced like GB, so we have to span 8 bytes
+    inc     de
+    push    de          ; setup for next 2bpp byte
+
+    push    hl          ; cache target VRAM address
+
+    ld      hl, $0007   ; UXN tile data isn't interlaced like GB, so we have to span 8 bytes
     add     hl, de
-    ldh     [hWorkingBytes], a
-    ld      a, [hl]
-    ld      de, -$0007  ; setup for next 2bpp byte
-    add     hl, de
-    ld      d, h
-    ld      e, l
-    ldh     [hWorkingBytes+1], a
+    ld      d, a        ; store low byte
+    ld      e, [hl]     ; get high byte
 
-    ; Note: The bit loop is currently the same for 1bpp and 2bpp once the hWorkingBytes are loaded
-
-    ld      c, 8        ; bit counter
-.bitLoop
-    push    bc
-    ldh     a, [hWorkingBytes]
-    ld      b, a
-    ldh     a, [hWorkingBytes+1]
-    ld      c, a
-
-    xor     a
-    sla     c           ; shift high bit into carry
-    rl      a           ; shift carry into A
-    sla     b           ; shift low bit into carry
-    rl      a           ; shift carry into A (now 'ch' 0-3 for a given pixel)
+    ; Note: The bit loop is currently the same for 1bpp and 2bpp once DE is loaded
 
     ld      h, HIGH(wPixelBlend)
+    ld      c, 8        ; bit counter
+.bitLoop
+    xor     a
+    sla     e           ; shift high bit into carry
+    rl      a           ; shift carry into A
+    sla     d           ; shift low bit into carry
+    rl      a           ; shift carry into A (now 'ch' 0-3 for a given pixel)
+
     ld      l, a
-    ld      h, [hl]     ; A = blended pixel value (0-3)
+    ld      l, [hl]     ; H = blended pixel value (0-3)
 
-    ldh     a, [hWorkingBytes]
-    rr      h           ; shift low bit into carry
-    rl      a           ; shift low bit into low working byte
-    ldh     [hWorkingBytes], a
-    ldh     a, [hWorkingBytes+1]
-    rr      h           ; shift high bit into carry
-    rl      a           ; shift high bit into high working byte
-    ldh     [hWorkingBytes+1], a
+    rr      d           ; shimmy bits back
+    rr      l           ; shift low bit into carry
+    rl      d           ; shift low bit into low working byte
+    rr      e           ; shimmy bits back
+    rr      l           ; shift high bit into carry
+    rl      e           ; shift hit bit into high working byte
 
-    pop     bc
     dec     c
     jr      nz, .bitLoop
     
@@ -1469,15 +1443,16 @@ Render2bppTile:
 :   ldh     a, [rSTAT]
     and     STATF_BUSY
     jr      nz, :-
-    ldh     a, [hWorkingBytes]
-    ld      [hli], a
-    ; In some cases (hello-pong) we seem to regularly hit inaccessible VRAM here right after the
-    ;  STAT interrupt for the tile bank swap, so be super careful instead.
+    ld      [hl], d
+    inc     l
+
 :   ldh     a, [rSTAT]
     and     STATF_BUSY
     jr      nz, :-
-    ldh     a, [hWorkingBytes+1]
-    ld      [hli], a
+    ld      [hl], e
+    inc     l
+
+    pop     de
 
     dec     b
     jr      nz, .vLoop
@@ -1574,8 +1549,6 @@ BGSprite2bpp:
     ; y/8*20*16
     srl     a   ; y/8
     srl     a
-    ;srl     a
-    ;sla     a   ; double for table which stores words
     and     %11111110
     ld      hl, Y_TIMES_320_VRAM
     add     l

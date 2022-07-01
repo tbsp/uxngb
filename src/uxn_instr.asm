@@ -157,8 +157,9 @@ BC_to_UXN_Banked: MACRO
     ENDM
 
 
-_NIL::
 _BRK::
+    pop     af          ; pop off return address so we break out of uxn_eval on ret
+_NIL::
     ret
 
 ; LIT -- a
@@ -2662,7 +2663,7 @@ _DEI::
     ; get handler address
     ld      a, d
     and     $F0
-    srl     a
+    rrca
     ;add     0       ; DEI handler offset
     ld      hl, DeviceHandlers
     add     l
@@ -2730,7 +2731,7 @@ _DEI2::
     ; get handler address
     ld      a, d
     and     $F0
-    srl     a
+    rrca
     add     2       ; DEI2 handler offset
     ld      hl, DeviceHandlers
     add     l
@@ -2795,7 +2796,7 @@ _DEO::
     ; get handler address
     ld      a, d
     and     $F0
-    srl     a
+    rrca
     add     4       ; DEO handler offset
     ld      hl, DeviceHandlers
     add     l
@@ -2852,7 +2853,7 @@ _DEO2::
     ; get handler address
     ld      a, d
     and     $F0
-    srl     a
+    rrca
     add     6       ; DEO2 handler offset
     ld      hl, DeviceHandlers
     add     l
