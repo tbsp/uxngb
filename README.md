@@ -21,6 +21,8 @@ You can download a binary build [here](https://github.com/tbsp/uxngb/releases). 
 <img src="https://user-images.githubusercontent.com/10489588/176512460-f86e0335-e4d8-421b-b7cf-72347bd1a8f6.jpg" height=144/>
 <img src="https://user-images.githubusercontent.com/10489588/176514430-42b9c1a9-9300-426d-8f34-63fab83205fa.jpg" height=144/>
 
+*Note: Changes to sprite tile/OAM cycling in 0.1.2 will yield slightly different results than the Screen.tal results shown here.*
+
 ## Performance
 
 The mandelbrot ROM currently takes ~1h44m to render fully on an original Game Boy, and ~52min on a Game Boy Color (using double-speed mode). As of the 0.1.2 release this is likely closer to 30mins on Game Boy Color, but I haven't timed a full run yet.
