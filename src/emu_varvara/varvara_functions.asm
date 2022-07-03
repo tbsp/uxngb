@@ -35,7 +35,7 @@ ModeInit:
 
     ; Clear foreground object source address table
     ld      hl, wObjSourceAddrs
-    ld      c, wObjSourceAddrs.end - wObjSourceAddrs
+    ld      c, wObjSourceAddrs.end - wObjSourceAddrs + 1 ; also clear trailing index
     rst     MemsetSmall
 
     ; Setup static tilemap for background 'layer'

@@ -103,6 +103,7 @@ wSpriteTileAddr:ds 2    ; address to render sprite tile to
 SECTION "Varvara WRAM FG Sprites", WRAM0, ALIGN[8]
 wObjSourceAddrs::   ds 16*4 ; blend byte, source UXN address, pad
 .end::
+wObjSourceEmpty::   ds 1    ; low byte of next free entry
 
 SECTION "Varvara HRAM", HRAM
 hDeviceByte:        ds 1    ; copy of the device byte for fast access
@@ -167,6 +168,13 @@ VectorHandlers::
     ldh     [hPC+1], a
 
     call    uxn_eval    ; eval instructions until a BRK is hit
+
+    ; There's a decent chance the screen vector performed OAM updates, so
+    ;  queue up an OAM DMA once all updates have been performed (to prevent
+    ;  tearing in the likely case updates span more than one vblank).
+    ld      a, HIGH(wShadowOAM)
+    ldh     [hOAMHigh], a
+
 .noScreenVector
 
     ret
@@ -737,14 +745,9 @@ LocateTargetSpriteTileVRAM:
     ld      d, a
     ld      e, [hl]
 
-    ld      c, $ff  ; low byte of empty entry ($ff=none found)
     ld      hl, wObjSourceAddrs
 
-:   ld      a, [hl]     ; check blend value (0=invisible, and also unused)
-    or      a
-    jr      nz, .notEmpty
-    ld      c, l        ; note low byte of empty entry in case we need it
-.notEmpty
+.matchLoop
     ld      a, b        ; check if blend==0 (erase sprite)
     or      a
     jr      z, .skipBlendCheck
@@ -761,11 +764,14 @@ LocateTargetSpriteTileVRAM:
     jr      nz, .addrDifferent
     ; blend and addr match, use the existing VRAM entry!
 
-    ; Return tileID to use for OAM entry in A
+    ; TileID of sprite to hide
     ld      a, l
     srl     a
     srl     a
-    add     $f0 ; tileID of 0th foreground tile
+    add     $f0
+    ld      [wSpriteTileID], a
+
+    ; Also returned as non-zero A to indicate no tile copy required
 
     ret
 
@@ -777,46 +783,52 @@ LocateTargetSpriteTileVRAM:
     inc     a
     ld      l, a
     cp      LOW(wObjSourceAddrs.end)
-    jr      nz, :-
+    jr      nz, .matchLoop
 
     ; Reached end without finding a match!
 
-;     ; Check if we found an empty entry
-;     ld      a, c
-;     inc     a
-;     jr      nz, .emptyFound
-;     ; No empty entry found, we've run out of foreground sprite tile VRAM slots!
-;     ; For now just keep using the last entry
-;     ld      c, LOW(wObjSourceAddrs.end) - 4
-; .emptyFound
+    ld      a, b
+    or      a
+    jr      nz, .notErasing
+    ; If we failed to find a matching entry for an erase blend tile it's likely
+    ;  the first pass of a 'standard' erase/draw cycle. Don't bother rendering
+    ;  an emptry tile and wasting a slot.
 
-    ; Store our blend/addr values in the last empty entry
-    ld      l, c    ; low byte of last empty entry
-    ld      a, b    ; blend value
+    ld      [wSpriteTileID], a  ; indicate no sprite should be drawn
+
+    ; Return 1 to bypass tile rendering
+    inc     a
+    ret
+
+.notErasing
+
+    ; Store our blend/addr values in the next empty entry
+    ld      hl, wObjSourceEmpty
+    ld      l, [hl]
+
+    ; Store table entry
+    ld      a, b        ; blend value
     ld      [hli], a
     ld      a, d
-    ld      [hli], a
+    ld      [hli], a    ; addr
     ld      [hl], e
 
-    ; To allow entry reuse, also clear out the next entry!
-    ; Note: This likely has negative effects on locating old entries for sprite
-    ;  hiding, but the overall benefits seem to outweigh that
+    ; Set the following entry as the next empty entry
+    inc     l
     ld      a, l
-    sub     6
-    and     %00111111   ; constrain to 64 byte table
-    ld      l, a
-    xor     a
-    ld      [hl], a
+    inc     a
+    ld      [wObjSourceEmpty], a    ; update new empty entry
 
-    ; Calcualte tileID from table low byte value
-    ld      a, c
-    sra     a
-    sra     a
-    add     $F0
+    ; Calculate tileID from table low byte value
+    ld      a, l
+    srl     a
+    srl     a
+    add     $f0
     ld      [wSpriteTileID], a
-
+    
     ; Calculate VRAM address from table low byte value
-    ld      a, c
+    ld      a, l
+    and     %11111100   ; remove extra bits
     add     a
     add     a
     ld      c, a
@@ -837,15 +849,24 @@ LocateTargetSpriteTileVRAM:
 CreateOAMEntry:
     ld      e, a    ; cache tileID
 
-    ldh     a, [hDataByte]
+    ; Prepare OAM values both for hideSeek (blend=0) or creation
+    ldh     a, [hWorkingY]
+    add     $10
+    ld      b, a
+    ldh     a, [hWorkingX]
+    add     $08
+    ld      c, a
+    ldh     a, [hDataByte]      ; apply tile flips to hardware object
+    ld      l, a
+    and     %00110000           ; only retain flip bits
+    add     a                   ; UXN flip bits are shifted one over from GB
+    ld      d, a
+
+    ld      a, l
     and     $0f     ; get blend value, 0=hidden
     jr      nz, .spriteVisible
     ; sprite blended to zero, locate sprite at this x/y and tileID,
     ;  and hide it
-    ldh     a, [hWorkingY]
-    ld      b, a
-    ldh     a, [hWorkingX]
-    ld      c, a
 
     ld      hl, wShadowOAM
 :   ld      a, [hli]
@@ -854,9 +875,13 @@ CreateOAMEntry:
     ld      a, [hli]
     cp      c
     jr      nz, .hideSeek
-    ld      a, [hl]
+    ld      a, [hli]
     cp      e
     jr      nz, .hideSeek
+    ld      a, [hld]
+    cp      d
+    jr      nz, .hideSeek
+
     ; Hide this sprite!
     dec     l
     dec     l
@@ -875,31 +900,24 @@ CreateOAMEntry:
     ld      l, 0
     jr      .resume
 
+
 .spriteVisible
     ld      hl, wOAMIndex       ; point to next unused OAM entry
     ld      l, [hl]
 
-    ldh     a, [hWorkingY]
-    add     $10
+    ld      a, b
     ld      [hli], a
-    ldh     a, [hWorkingX]
-    add     $08
+    ld      a, c
     ld      [hli], a
     ld      a, e
     ld      [hli], a
-    ldh     a, [hDataByte]      ; apply tile flips to hardware object
-    and     %00110000           ; only retain flip bits
-    add     a                   ; UXN flip bits are shifted one over from GB
+    ld      a, d
     ld      [hli], a
 
 .resume
     ld      a, l
     ld      [wOAMIndex], a   ; update next unused OAM entry index
 
-    ; Ensure OAM DMA occurs
-    ld      a, HIGH(wShadowOAM)
-    ldh     [hOAMHigh], a
-    
     ret
 
 FGSprite1bpp:
@@ -921,9 +939,13 @@ FGSprite1bpp:
     ld      a, [wSpriteTileAddr+1]
     ld      h, a
     call    Render1bppTile
-    ld      a, [wSpriteTileID]
+
 .CreateOAMEntry
+    ld      a, [wSpriteTileID]
+    or      a
+    jr      z, .skipOAM
     call    CreateOAMEntry
+.skipOAM
 
 .outOfRange
     ld      d, 8    ; 8 byte offset between 1bpp tiles
@@ -952,9 +974,13 @@ FGSprite2bpp:
     ld      a, [wSpriteTileAddr+1]
     ld      h, a
     call    Render2bppTile
-    ld      a, [wSpriteTileID]
+
 .CreateOAMEntry
+    ld      a, [wSpriteTileID]
+    or      a
+    jr      z, .skipOAM
     call    CreateOAMEntry
+.skipOAM
 
 .outOfRange
     ld      d, 16
