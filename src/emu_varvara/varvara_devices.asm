@@ -817,6 +817,7 @@ LocateTargetSpriteTileVRAM:
     inc     l
     ld      a, l
     inc     a
+    and     %00111111               ; wrap to stay within table
     ld      [wObjSourceEmpty], a    ; update new empty entry
 
     ; Calculate tileID from table low byte value
@@ -916,6 +917,10 @@ CreateOAMEntry:
 
 .resume
     ld      a, l
+    cp      $A0
+    jr      c, .inRange
+    xor     a
+.inRange
     ld      [wOAMIndex], a   ; update next unused OAM entry index
 
     ret
