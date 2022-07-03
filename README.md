@@ -2,7 +2,7 @@
 
 A highly experimental port of the [uxn virtual machine](https://wiki.xxiivv.com/site/uxn.html) to the Game Boy and Game Boy Color gaming handheld. I knew this was a fairly ridiculous project from the start, but wanted to see how it might perform and was pleased to see [compudanza's pong tutorial](https://compudanzas.net/uxn_tutorial_day_6.html) run at slow-motion playable speeds.
 
-Some effort has gone into optimizing for performance. The MUL and DIV instructions are obviously very slow due to the lack of hardware support for those operations. They have been unrolled for speed, but additional optimizations are likely possible.
+Some effort has gone into optimizing for performance. The MUL and DIV instructions are obviously very slow due to the lack of hardware support for those operations. They have been unrolled for speed, but additional optimizations are likely possible. In addition, as the Game Boy lacks a bitmap graphics mode, the background layer is used to mimic one for "background" pixel/sprite writes (which is slow), and the hardware objects (sprites) are used for foreground sprites (which leads to quite a few limitations).
 
 You can download a binary build [here](https://github.com/tbsp/uxngb/releases). Binaries with a variety of UXN ROMs appended are also available there.
 
