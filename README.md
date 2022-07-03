@@ -2,7 +2,7 @@
 
 A highly experimental port of the [uxn virtual machine](https://wiki.xxiivv.com/site/uxn.html) to the Game Boy and Game Boy Color gaming handheld. I knew this was a fairly ridiculous project from the start, but wanted to see how it might perform and was pleased to see [compudanza's pong tutorial](https://compudanzas.net/uxn_tutorial_day_6.html) run at slow-motion playable speeds.
 
-No effort has gone into optimizing for performance, aside from trying to avoid writing intentionally bad code. Getting it to run at all was the primary goal. I even optimized for space savings for several of the instructions, because the opportunity for code reuse was too hard to ignore. The MUL and DIV instructions are obviously very slow due to the lack of hardware support for those operations. Unrolling of loops and other approaches could yield significant improvements in speed.
+Some effort has gone into optimizing for performance. The MUL and DIV instructions are obviously very slow due to the lack of hardware support for those operations. They have been unrolled for speed, but additional optimizations are likely possible.
 
 You can download a binary build [here](https://github.com/tbsp/uxngb/releases). Binaries with a variety of UXN ROMs appended are also available there.
 
@@ -23,7 +23,7 @@ You can download a binary build [here](https://github.com/tbsp/uxngb/releases). 
 
 ## Performance
 
-The mandelbrot ROM currently takes ~1h44m to render fully on an original Game Boy, and ~52min on a Game Boy Color (using double-speed mode).
+The mandelbrot ROM currently takes ~1h44m to render fully on an original Game Boy, and ~52min on a Game Boy Color (using double-speed mode). As of the 0.1.2 release this is likely closer to 30mins on Game Boy Color, but I haven't timed a full run yet.
 
 ## Running your own ROMs
 
