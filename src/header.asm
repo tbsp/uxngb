@@ -89,7 +89,7 @@ Reset::
 
     ; Initialize frame counter (counts down 60 frames to measure a ~second)
     ld      a, 60
-    ld      [wFrameCounter], a
+    ldh     [hFrameCounter], a
 
     ; Select wanted interrupts here
     ; You can also enable them later if you want
@@ -146,7 +146,8 @@ hOAMDMA::
     ds OAMDMA.end - OAMDMA
 
 
-SECTION UNION "Shadow OAM", WRAM0,ALIGN[8]
+; Manually positioned to maximize WRAM space for Uxn
+SECTION UNION "Shadow OAM", WRAM0[$E000 - 1024]
 
 wShadowOAM::
     ds NB_SPRITES * 4
@@ -155,8 +156,8 @@ wOAMIndex::         ; Index of next free entry in OAM for dynamically generated 
 wOAMEndIndex::      ; Index of last enty used in the previous frame
     ds 1
 
-; This ensures that the stack is at the very end of WRAM
-SECTION "Stack", WRAM0[$E000 - STACK_SIZE]
+; This ensures that the stack is packed into a safe portion of WRAM
+SECTION "Stack", WRAM0[$E000 - 512 - 256 - STACK_SIZE]
 
     ds STACK_SIZE
 wStackBottom:

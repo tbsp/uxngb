@@ -1,9 +1,6 @@
 
 INCLUDE "defines.asm"
 
-INCLUDE "misc/rand.asm"
-EXPORT randstate ; Defined in the above, exported here to avoid touching the file
-
 SECTION "LCDMemsetSmallFromB", ROM0
 
 ; Writes a value to all bytes in an area of memory

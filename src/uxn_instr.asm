@@ -20,7 +20,7 @@
 ; 3. This notice may not be removed or altered from any source distribution.
 ;
 
-SECTION "DIV2 WRAM", WRAM0, ALIGN[3]
+SECTION "DIV2 WRAM", WRAM0[$DCA2]
 _MD16temp:  ds 2
 _MD16count: db
 

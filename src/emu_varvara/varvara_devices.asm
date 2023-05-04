@@ -94,13 +94,13 @@ DefaultDefaults::
     ; the rest
     ds 16*3, 0
 
-SECTION "Varvara WRAM", WRAM0, ALIGN[8]
+SECTION "Varvara WRAM", WRAM0[$DA00]
 wPixelBlend:    ds 4    ; 4 blend bytes for the current blend mode
 wTileBuffer:    ds 16   ; buffer for tile data during blit
 wSpriteTileID:  ds 1    ; tileID to use for sprite
 wSpriteTileAddr:ds 2    ; address to render sprite tile to
 
-SECTION "Varvara WRAM FG Sprites", WRAM0, ALIGN[8]
+SECTION "Varvara WRAM FG Sprites", WRAM0[$DB00]
 wObjSourceAddrs::   ds 16*4 ; blend byte, source UXN address, pad
 .end::
 wObjSourceEmpty::   ds 1    ; low byte of next free entry
@@ -241,7 +241,7 @@ ENDC
     ; For CGB convert from 12 bit to 15 bit RGB
     ; CGB: xBBBBBGG_GGGRRRRR
     ld      hl, wDevices + $08
-    ld      bc, wPendingPalettes
+    ld      bc, hPendingPalettes
     call    ConvertTwoColors
     call    ConvertTwoColors
 

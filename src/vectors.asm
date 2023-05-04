@@ -191,7 +191,7 @@ VBlankHandler:
 
     ; Update datetime device time
     ; TODO: Only run if datetime device is present
-    ld      hl, wFrameCounter
+    ld      hl, hFrameCounter
     dec     [hl]
     jr      nz, .notASecond
     ld      a, 60
@@ -229,7 +229,7 @@ VBlankHandler:
     push    bc
 
     ; Apply the pending palettes
-    ld      hl, wPendingPalettes
+    ld      hl, hPendingPalettes
     ld      a, BCPSF_AUTOINC
     ldh     [rBCPS], a
     ld      b, 8
@@ -239,7 +239,7 @@ VBlankHandler:
     dec     b
     jr      nz, .bgPal
 
-    ld      hl, wPendingPalettes
+    ld      hl, hPendingPalettes
     ld      a, OCPSF_AUTOINC
     ldh     [rOCPS], a
     ld      b, 8

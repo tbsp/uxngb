@@ -38,26 +38,25 @@ ELSE
 ENDC
 
 SECTION "UXN HRAM", HRAM
-hPC::       ds 2
-hWSTPtr::   ds 1    ; should exist as the second last byte in the wst (programs that depend on that will fail right now)
-hRSTPtr::   ds 1    ; should exist as the second last byte in the rst (programs that depend on that will fail right now)
+hPC::               ds 2
+hWSTPtr::           ds 1    ; should exist as the second last byte in the wst (programs that depend on that will fail right now)
+hRSTPtr::           ds 1    ; should exist as the second last byte in the rst (programs that depend on that will fail right now)
+hPendingPalettes::  ds 16   ; one full BG and OBJ palette for CGB
+hFrameCounter::     ds 1    ; used to increment datetime seconds every 60 frames
 
-; The default stacks "live" at $10000-$100ff and $10100-$101ff in UXN memory
-SECTION "UXN Stacks", WRAM0, ALIGN[8]
+; The stacks/devices are explicitly stored at the end of WRAM to allow UXN memory to overflow from SRAM to WRAM, which
+;  allows UXN to access 15616 (16384-512-256) bytes of RAM (instead of just 8192 bytes).
+SECTION "UXN Stacks", WRAM0[$E000-512]
 wWST::      ds 256
 wRST::      ds 256
 
-SECTION "UXN Devices", WRAM0, ALIGN[8]
+SECTION "UXN Devices", WRAM0[$E000-512-256]
 wDevices::  ds 16*16
 
 SECTION "UXN Memory", SRAM[$A000]
 eUXNMemory::
 eZeroPage::     ds 256
 ePageProgram::
-
-SECTION "General WRAM", WRAM0
-wPendingPalettes::  ds 16   ; one full BG and OBJ palette for CGB
-wFrameCounter::     ds 1
 
 SECTION "Intro", ROM0
 
@@ -95,7 +94,7 @@ Intro::
     ; TODO: Copy in banks
     ld      de, staticROM
     ld      hl, ePageProgram
-    ld      bc, $2000-$100 ; Blindly copy the 8KB maximum supported ROM size minus the zero page
+    ld      bc, $3A00-$100 ; Blindly copy the 0x3A00 maximum supported ROM size minus the zero page
     call    Memcpy
 
     ; initialize PC
