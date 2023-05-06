@@ -32,9 +32,9 @@ ModeInit:
 
     ; Setup console cursor
     ld      a, HIGH($9800)
-    ld      [wCursorAddr], a
+    ldh     [hCursorAddr], a
     ld      a, LOW($9800)
-    ld      [wCursorAddr+1], a
+    ldh     [hCursorAddr+1], a
 
     ; Clear console
     ld      hl, $9800

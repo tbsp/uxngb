@@ -39,16 +39,16 @@ ENDC
 
 SECTION "UXN HRAM", HRAM
 hPC::               ds 2
-hWSTPtr::           ds 1    ; should exist as the second last byte in the wst (programs that depend on that will fail right now)
-hRSTPtr::           ds 1    ; should exist as the second last byte in the rst (programs that depend on that will fail right now)
 hPendingPalettes::  ds 16   ; one full BG and OBJ palette for CGB
 hFrameCounter::     ds 1    ; used to increment datetime seconds every 60 frames
 
 ; The stacks/devices are explicitly stored at the end of WRAM to allow UXN memory to overflow from SRAM to WRAM, which
 ;  allows UXN to access 15616 (16384-512-256) bytes of RAM (instead of just 8192 bytes).
 SECTION "UXN Stacks", WRAM0[$E000-512]
-wWST::      ds 256
-wRST::      ds 256
+wWST::      ds 255
+wWSTPtr::   ds 1
+wRST::      ds 255
+wRSTPtr::   ds 1
 
 SECTION "UXN Devices", WRAM0[$E000-512-256]
 wDevices::  ds 16*16
@@ -87,8 +87,8 @@ Intro::
     rst     Memset
 
     ; Initialize stack pointers
-    ldh     [hWSTPtr], a
-    ldh     [hRSTPtr], a
+    ld      [wWSTPtr], a
+    ld      [wRSTPtr], a
 
     ; Copy entire ROM external RAM
     ; TODO: Copy in banks
@@ -160,15 +160,15 @@ instr_jump_table:
     ; 0x10
     dw _LDZ,    _STZ,    _LDR,    _STR,    _LDA,    _STA,    _DEI,    _DEO,    _ADD,    _SUB,    _MUL,    _DIV,    _AND,    _ORA,    _EOR,    _SFT
     ; 0x20
-    dw _NIL,    _INC2,   _POP2,   _NIP2,   _SWP2,   _ROT2,   _DUP2,   _OVR2,   _EQU2,   _NEQ2,   _GTH2,   _LTH2,   _JMP2,   _JCN2,   _JSR2,   _STH2
+    dw _JCI,    _INC2,   _POP2,   _NIP2,   _SWP2,   _ROT2,   _DUP2,   _OVR2,   _EQU2,   _NEQ2,   _GTH2,   _LTH2,   _JMP2,   _JCN2,   _JSR2,   _STH2
     ; 0x30
     dw _LDZ2,   _STZ2,   _LDR2,   _STR2,   _LDA2,   _STA2,   _DEI2,   _DEO2,   _ADD2,   _SUB2,   _MUL2,   _DIV2,   _AND2,   _ORA2,   _EOR2,   _SFT2
     ; 0x40
-    dw _NIL,    _INCr,   _POPr,   _NIPr,   _SWPr,   _ROTr,   _DUPr,   _OVRr,   _EQUr,   _NEQr,   _GTHr,   _LTHr,   _JMPr,   _JCNr,   _JSRr,   _STHr
+    dw _JMI,    _INCr,   _POPr,   _NIPr,   _SWPr,   _ROTr,   _DUPr,   _OVRr,   _EQUr,   _NEQr,   _GTHr,   _LTHr,   _JMPr,   _JCNr,   _JSRr,   _STHr
     ; 0x50
     dw _LDZr,   _STZr,   _LDRr,   _STRr,   _LDAr,   _STAr,   _DEIr,   _DEOr,   _ADDr,   _SUBr,   _MULr,   _DIVr,   _ANDr,   _ORAr,   _EORr,   _SFTr
     ; 0x60
-    dw _NIL,    _INC2r,  _POP2r,  _NIP2r,  _SWP2r,  _ROT2r,  _DUP2r,  _OVR2r,  _EQU2r,  _NEQ2r,  _GTH2r,  _LTH2r,  _JMP2r,  _JCN2r,  _JSR2r,  _STH2r
+    dw _JSI,    _INC2r,  _POP2r,  _NIP2r,  _SWP2r,  _ROT2r,  _DUP2r,  _OVR2r,  _EQU2r,  _NEQ2r,  _GTH2r,  _LTH2r,  _JMP2r,  _JCN2r,  _JSR2r,  _STH2r
     ; 0x70
     dw _LDZ2r,  _STZ2r,  _LDR2r,  _STR2r,  _LDA2r,  _STA2r,  _DEI2r,  _DEO2r,  _ADD2r,  _SUB2r,  _MUL2r,  _DIV2r,  _AND2r,  _ORA2r,  _EOR2r,  _SFT2r
     ; 0x80

@@ -43,8 +43,8 @@ SECTION "UXNCLI Device Defaults", ROM0
 DefaultDefaults::
     ds 256, 0
 
-SECTION "UXNCLI WRAM", WRAM0
-wCursorAddr::       ds 2
+SECTION "UXNCLI WRAM", HRAM
+hCursorAddr::       ds 2
 
 SECTION "Font Tiles", ROM0
 FontTiles:
@@ -83,9 +83,9 @@ DevConsoleDEO::
     jr      nz, .notWrite
 
     ; write character
-    ld      a, [wCursorAddr]
+    ldh     a, [hCursorAddr]
     ld      h, a
-    ld      a, [wCursorAddr+1]
+    ldh     a, [hCursorAddr+1]
     ld      l, a
 
     ; special characters
@@ -106,9 +106,9 @@ DevConsoleDEO::
 
 .storeCursor
     ld      a, h
-    ld      [wCursorAddr], a
+    ldh     [hCursorAddr], a
     ld      a, l
-    ld      [wCursorAddr+1], a
+    ldh     [hCursorAddr+1], a
 .notWrite
     ret
 
