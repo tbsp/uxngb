@@ -430,7 +430,6 @@ DevScreenDEI::
 ; d = device
 ; bc = data
 DevScreenDEI2::
-    ; TODO: Prevent width/height from exceeding 160x144 screen size
     ret
 
 ; d = device
@@ -1623,6 +1622,26 @@ BGSprite2bpp:
 ; d = device
 ; bc = data
 DevScreenDEO2:
+    ; Prevent width/height from exceeding 160x144 screen size by resetting width/height after they're set
+    ; (I tried handling this in DEI2, but it's handled after the values are pushed to the stack)
+    ld      a, d
+    sub     $22
+    jr      z, .width
+    dec     a
+    dec     a
+    jr      z, .height
+    ret
+.width
+    ld      a, HIGH(160)
+    ld      [wDevices + $22], a
+    ld      a, LOW(160)
+    ld      [wDevices + $23], a
+    ret
+.height
+    ld      a, HIGH(144)
+    ld      [wDevices + $24], a
+    ld      a, LOW(144)
+    ld      [wDevices + $25], a
     ret
 
 DevNil::
