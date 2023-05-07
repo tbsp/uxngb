@@ -1399,12 +1399,23 @@ _JSI::
     inc     bc
 
     push    hl          ; store return address on return stack
-    RST_HL
+    push    bc
+
+    ld      hl, $ffff & -eUXNMemory ; shift back to Uxn value, to handle stack manipulation
+    add     hl, bc
+    ld      b, h
+    ld      c, l
+
+    ld      hl, wRSTPtr
+    ld      a, [hl]
+    inc     [hl]
+    inc     [hl]
+    ld      l, a
     ld      [hl], b
     inc     l
     ld      [hl], c
-    inc     l
-    RST_PTR_L
+
+    pop     bc
     pop     hl
 
     add     hl, bc      ; offset PC
