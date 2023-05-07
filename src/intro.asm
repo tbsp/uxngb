@@ -120,7 +120,7 @@ system_halt:
 uxn_eval:
 
     ; TODO: check shutdown vector (dev:$0f)
-    ; TODO: check hWSTPtr
+    ; TODO: check wWSTPtr
 
     ; Thanks jvsTSX! Saved one cycle!
     ld      hl, hPC     ; get current PC
@@ -136,14 +136,12 @@ uxn_eval:
     ld      [hl], b
 
     ; obtain instruction handler address
-    ld      b, HIGH(instr_jump_table)
+    ld      h, HIGH(instr_jump_table)
     add     a
     jr      nc, :+
-    inc     b
-:   ld      c, a
+    inc     h
+:   ld      l, a
 
-    ld      h, b
-    ld      l, c
     ld      a, [hli]
     ld      h, [hl]
     ld      l, a
