@@ -348,6 +348,7 @@ ConvertTwoColors:
     ld      a, d
     swap    a
     sra     a
+    sra     a
     ld      d, a
     ld      a, [hld]    ; blue
     dec     l
@@ -375,6 +376,7 @@ ConvertTwoColors:
     ld      [bc], a     ; low byte of color 1
     inc     bc
     ld      a, d
+    sra     a
     sra     a
     ld      d, a
     ld      a, [hld]    ; blue
