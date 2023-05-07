@@ -1038,15 +1038,15 @@ _NEQ2::
     dec     l
     ld      e, [hl]
     push    hl
-    ld      h, 0
+    ld      h, 1
     ld      a, b
     cp      d
-    jr      z, .equal
+    jr      nz, .notEqual
     ld      a, c
     cp      e
-    jr      z, .equal
-    inc     h
-.equal
+    jr      nz, .notEqual
+    dec     h
+.notEqual
     ld      a, h
     pop     hl
     ld      [hl], a
