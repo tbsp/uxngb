@@ -41,7 +41,7 @@ DeviceHandlers::
     dw DevNil, DevNil, DevNil, DevNil                               ; empty
 
 SECTION "Tile Device Defaults", ROM0
-DefaultDefaults:::
+DeviceDefaults::
     ; system (0x00)
     dw 0        ; vector
     db 0        ; wst
