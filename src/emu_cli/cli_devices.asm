@@ -40,7 +40,7 @@ DeviceHandlers::
     dw DevNil, DevNil, DevNil, DevNil                               ; empty
 
 SECTION "UXNCLI Device Defaults", ROM0
-DefaultDefaults::
+DeviceDefaults::
     ds 256, 0
 
 SECTION "UXNCLI WRAM", HRAM

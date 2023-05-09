@@ -73,7 +73,7 @@ Intro::
     ld      [$00], a    ; enable SRAM access
 
     ; Initialize device memory
-    ld      de, DefaultDefaults
+    ld      de, DeviceDefaults
     ld      hl, wDevices
     ld      c, 0
     rst     MemcpySmall
