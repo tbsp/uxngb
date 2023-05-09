@@ -24,7 +24,7 @@ DEF MODE_CLI        EQU $00 ; mode with console input/output devices
 DEF MODE_VARVARA    EQU $01 ; mode with varvara compliant devices (very slow Screen due to lack of bitmap graphical hardware support)
 DEF MODE_TILE       EQU $02 ; mode with tile-based devices for improved performance on tile-based hardware (notional)
 
-DEF MODE            EQU MODE_VARVARA
+DEF MODE            EQU MODE_TILE
 
 ; Include different files based on active mode
 IF MODE == MODE_CLI
@@ -33,6 +33,9 @@ IF MODE == MODE_CLI
 ELIF MODE == MODE_VARVARA
     include "emu_varvara/varvara_devices.asm"
     include "emu_varvara/varvara_functions.asm"
+ELIF MODE == MODE_TILE
+    include "emu_tile/tile_devices.asm"
+    include "emu_tile/tile_functions.asm"
 ELSE
 
 ENDC

@@ -180,7 +180,7 @@ VectorHandlers::
     ret
 
 
-SECTION "Varvara wDevices", ROM0
+SECTION "Varvara Devices", ROM0
 
 DevSystemDEI::
     ret
